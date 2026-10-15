@@ -1,7 +1,7 @@
 import type { NeedleState, ScanSnapshot } from '../../lib/searchEngine';
 import type { DigitSource } from '../../lib/digitSource';
 import type { StripWriting } from '../DigitsStrip';
-import { formatChineseDate, formatClock, formatCompact, formatThousands } from '../../lib/position';
+import { formatChineseDate, formatClock, formatThousands, withUnit } from '../../lib/position';
 import { headline, heroNumber, swappedNote, tableNote } from '../../lib/headline';
 import { useCountUp } from '../../hooks/useCountUp';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
@@ -76,7 +76,7 @@ export function HeroStage({
             // 本机服务够到 10 亿位，但默认只扫到 1000 万位，深处的位次不能吹成「会自己再验证一遍」
             tableNote(answer.knownThrough ?? 0, scanReach, answer.position)
         : answer.digits === primaryDigits
-          ? '扫到 ' + formatCompact(snapshot.scannedDigits) + ' 位就命中，命中即停'
+          ? '扫到 ' + withUnit(snapshot.scannedDigits, '位') + '就命中，命中即停'
           : ''
       : '';
 

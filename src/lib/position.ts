@@ -26,6 +26,15 @@ export function formatCompact(value: number): string {
   return formatThousands(value);
 }
 
+/**
+ * 紧凑数字接单位：formatCompact 的「100 万」「1 亿」已经自带一格空格，再拼「位」就成了
+ * 「100 万 位」；而以阿拉伯数字结尾时（1,234）反而需要留一格。这里统一成一个纯函数。
+ */
+export function withUnit(value: number, unit: string): string {
+  const compact = formatCompact(value);
+  return /[0-9]$/.test(compact) ? compact + ' ' + unit : compact + unit;
+}
+
 function trimZero(value: number): string {
   const fixed = value >= 100 ? value.toFixed(0) : value >= 10 ? value.toFixed(1) : value.toFixed(2);
   return fixed.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');

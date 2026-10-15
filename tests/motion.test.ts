@@ -137,13 +137,13 @@ describe('headline 结论文案', () => {
       snapshot({ phase: 'done', targetDigits: 10_000_000, scannedDigits: 10_000_000 }),
     );
     expect(result.tone).toBe('notfound');
-    expect(result.text).toBe('10142026 没有出现在前 1000 万 位小数里');
+    expect(result.text).toBe('10142026 没有出现在前 1000 万位小数里');
   });
 
   it('搜索中报出已扫描位数', () => {
     const result = headline('20261015', needle(), snapshot({ scannedDigits: 417_576_887 }));
     expect(result.tone).toBe('searching');
-    expect(result.text).toBe('正在搜索 20261015（已扫描 4.18 亿 位）');
+    expect(result.text).toBe('正在搜索 20261015（已扫描 4.18 亿位）');
   });
 });
 

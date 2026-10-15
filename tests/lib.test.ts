@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CoverageTracker, findOccurrencesInText } from '../src/lib/searchCore';
 import { CHUNK_LADDER, chunkSizeAt, planChunk } from '../src/lib/searchEngine';
 import { encodingsFor, searchNeedles } from '../src/lib/encodings';
-import { byteOffsetOfPosition, clampDateKey, formatThousands, parseDateKey, toDateKey, withDateParam } from '../src/lib/position';
+import { byteOffsetOfPosition, clampDateKey, formatThousands, parseDateKey, toDateKey, withDateParam, withUnit } from '../src/lib/position';
 import { ANSWER_RANGE } from '../src/lib/answers';
 import { swappedNote, tableNote } from '../src/lib/headline';
 import { createRemoteWindow, remoteWindowRange, REMOTE_MAX_PER_REQUEST } from '../src/lib/digitSource';
@@ -32,6 +32,20 @@ describe('位次换算', () => {
     expect(formatThousands(1000)).toBe('1,000');
     expect(formatThousands(1234567)).toBe('1,234,567');
     expect(formatThousands(1_000_000_000)).toBe('1,000,000,000');
+  });
+});
+
+describe('紧凑数字接单位', () => {
+  it('阿拉伯数字结尾留一格空格', () => {
+    expect(withUnit(1234, '位')).toBe('1,234 位');
+    expect(withUnit(0, '字节')).toBe('0 字节');
+  });
+
+  it('中文单位结尾直接相连，不再多出一格', () => {
+    expect(withUnit(100_000, '位')).toBe('10 万位');
+    expect(withUnit(10_000_000, '位')).toBe('1000 万位');
+    expect(withUnit(100_000_000, '位')).toBe('1 亿位');
+    expect(withUnit(1_000_000, '字节')).toBe('100 万字节');
   });
 });
 

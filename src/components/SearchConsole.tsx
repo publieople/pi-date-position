@@ -1,6 +1,6 @@
 import type { ScanSnapshot } from '../lib/searchEngine';
 import type { DigitSource } from '../lib/digitSource';
-import { formatCompact, formatDuration, formatThousands } from '../lib/position';
+import { formatCompact, formatDuration, formatThousands, withUnit } from '../lib/position';
 
 export interface SearchConsoleProps {
   snapshot: ScanSnapshot | null;
@@ -75,7 +75,7 @@ export function SearchConsole({
         </div>
         <div>
           <dt>从上游取回</dt>
-          <dd>{formatCompact(snapshot?.bytesFetched ?? 0)} 字节</dd>
+          <dd>{withUnit(snapshot?.bytesFetched ?? 0, '字节')}</dd>
         </div>
         <div>
           <dt>分块完成</dt>
@@ -104,7 +104,7 @@ export function SearchConsole({
           <select value={String(targetDigits)} onChange={(event) => onTargetChange(Number(event.target.value))}>
             {presets.map((preset) => (
               <option key={preset} value={String(preset)}>
-                前 {formatCompact(preset)} 位
+                前 {withUnit(preset, '位')}
               </option>
             ))}
           </select>
@@ -114,8 +114,8 @@ export function SearchConsole({
             ? '上限受数据源限制（本机服务 10 亿位）。已确认首个出现的写法会提前停止。'
             : source?.kind === 'static'
               ? '在线演示版只有前 ' +
-                formatCompact(source.maxDigits) +
-                ' 位静态数据。已确认首个出现的写法会提前停止。'
+                withUnit(source.maxDigits, '位') +
+                '静态数据。已确认首个出现的写法会提前停止。'
               : '正在探测数据源…'}
         </span>
       </div>
@@ -130,7 +130,7 @@ export function SearchConsole({
               onClick={() => onTargetChange(value)}
               disabled={targetDigits === value}
             >
-              前 {formatCompact(value)} 位
+              前 {withUnit(value, '位')}
             </button>
           ))}
           <span className="dim">深搜更慢：8 位完整写法往往要到这个范围里才有结论。</span>

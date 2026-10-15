@@ -1,4 +1,4 @@
-import { formatCompact, formatThousands } from './position';
+import { formatCompact, formatThousands, withUnit } from './position';
 import type { NeedleState, ScanSnapshot } from './searchEngine';
 
 export type HeadlineTone = 'pending' | 'found' | 'tentative' | 'partial' | 'notfound' | 'searching';
@@ -40,12 +40,12 @@ export function headline(
   }
   if (snapshot && snapshot.phase !== 'searching') {
     return {
-      text: primaryDigits + ' 没有出现在前 ' + formatCompact(snapshot.targetDigits) + ' 位小数里',
+      text: primaryDigits + ' 没有出现在前 ' + withUnit(snapshot.targetDigits, '位') + '小数里',
       tone: 'notfound',
     };
   }
-  const scanned = snapshot ? formatCompact(snapshot.scannedDigits) : '0';
-  return { text: '正在搜索 ' + primaryDigits + '（已扫描 ' + scanned + ' 位）', tone: 'searching' };
+  const scanned = snapshot ? withUnit(snapshot.scannedDigits, '位') : '0 位';
+  return { text: '正在搜索 ' + primaryDigits + '（已扫描 ' + scanned + '）', tone: 'searching' };
 }
 
 /**

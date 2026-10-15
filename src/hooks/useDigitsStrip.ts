@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { DigitsStripProps, StripWriting } from '../components/DigitsStrip';
 import type { DigitSource } from '../lib/digitSource';
 import { remoteWindowRange } from '../lib/digitSource';
-import { formatCompact, formatThousands } from '../lib/position';
+import { formatThousands, withUnit } from '../lib/position';
 
 export type StripState = Omit<DigitsStripProps, 'needle' | 'animate'> & { writing: StripWriting | null };
 
@@ -80,8 +80,8 @@ export function useDigitsStrip(options: DigitsStripOptions): StripState {
                 '这一段取自 ' +
                 remote.label +
                 '（本站内置副本只到前 ' +
-                formatCompact(source.maxDigits) +
-                '位）；位次结论仍以离线答案表为准。',
+                withUnit(source.maxDigits, '位') +
+                '）；位次结论仍以离线答案表为准。',
             });
           },
           (error: unknown) => {
@@ -96,8 +96,8 @@ export function useDigitsStrip(options: DigitsStripOptions): StripState {
                 '它落在小数点后第 ' +
                 formatThousands(position) +
                 ' 位，超出本站内置的前 ' +
-                formatCompact(source.maxDigits) +
-                ' 位，在线取数也没能取回附近的数字（' +
+                withUnit(source.maxDigits, '位') +
+                '，在线取数也没能取回附近的数字（' +
                 String((error as Error)?.message ?? error) +
                 '）。在本机跑 pnpm dev 可以直接从本地 π 数据里取。',
             });
@@ -117,8 +117,8 @@ export function useDigitsStrip(options: DigitsStripOptions): StripState {
           '它落在小数点后第 ' +
           formatThousands(position) +
           ' 位，而当前数据源只到前 ' +
-          formatCompact(source.maxDigits) +
-          ' 位 —— 附近的数字取不回来。在本机跑 pnpm dev 可以取到实位。',
+          withUnit(source.maxDigits, '位') +
+          ' —— 附近的数字取不回来。在本机跑 pnpm dev 可以取到实位。',
       });
       return;
     }
