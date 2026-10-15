@@ -18,6 +18,7 @@ import { createScanPool, type ScanPool } from './lib/workerScanner';
 import { clearCache, loadCache, saveCache, type CachedResult } from './lib/resultCache';
 import { formatCompact, formatThousands, pad2, parseDateKey, toDateKey, withDateParam } from './lib/position';
 import { lookupAnswers, mergeAnswers, type DateAnswers } from './lib/answers';
+import { pickDisplayNeedle } from './lib/present';
 import type { DigitsStripProps, StripWriting } from './components/DigitsStrip';
 import type { SelfCheckState } from './components/Conventions';
 
@@ -236,36 +237,17 @@ export default function App() {
 
   // 首屏主写法（8 位）在 1000 万位内往往还没出现，所以数字带优先展示「这一天里最早确认命中的写法」，
   // 有确认命中就用确认的，其次才用暂定的，都没有才显示说明文案。
-  const displayNeedle = useMemo(() => {
-    if (!view) return null;
-    const pick = (digits: string) => {
-      const state = view.needles.find((needle) => needle.digits === digits);
-      if (!state || state.firstHit === null) return null;
-      return {
-        digits,
-        position: state.firstHit,
-        tentative: !state.firstHitConfirmed,
-        label: encodings.find((encoding) => encoding.digits === digits)?.label ?? digits,
-        origin: state.origin,
-        knownThrough: state.knownThrough,
-      };
-    };
-    const direct = pick(primaryDigits);
-    // 主写法（8 位）确认了就用它；否则取「已确认写法里位次最靠前的那个」。
-    if (direct && !direct.tentative) return direct;
-    const confirmed = needles
-      .map((needle) => pick(needle.digits))
-      .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null && !candidate.tentative);
-    if (confirmed.length > 0) {
-      return confirmed.reduce((best, candidate) => (candidate.position < best.position ? candidate : best));
-    }
-    if (direct) return direct;
-    for (const needle of needles) {
-      const candidate = pick(needle.digits);
-      if (candidate) return candidate;
-    }
-    return null;
-  }, [view, encodings, needles, primaryDigits]);
+  const displayNeedle = useMemo(
+    () =>
+      view
+        ? pickDisplayNeedle(
+            view.needles,
+            primaryDigits,
+            (digits) => encodings.find((encoding) => encoding.digits === digits)?.label ?? digits,
+          )
+        : null,
+    [view, encodings, primaryDigits],
+  );
 
   const displayDigits = displayNeedle ? displayNeedle.digits : null;
   const displayPosition = displayNeedle ? displayNeedle.position : null;

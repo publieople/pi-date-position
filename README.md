@@ -92,6 +92,7 @@ pnpm answers -- --depth 2000000000   # 想更深也可以（文件体积随之�
 ## 动效实现（不引入任何动画库）
 
 - `src/lib/motion.ts`：`clamp01` / `easeOutCubic` / `stagger` / `revealDelay` / `countUpValue` / `scrollThroughProgress` 等纯函数（有单测）。
+- `src/lib/present.ts`：首屏展示哪一条写法的选择逻辑（`pickDisplayNeedle`）—— 主写法确认了就用它，否则取「已确认写法里位次最靠前的」，最后才退到暂定位次；纯函数、有单测（以前埋在 `App.tsx` 里没有测试）。
 - `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮 + 键盘翻章）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` / `accumulateWheel` / `pagingIntentForKey` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮与页面键、维持 700ms 锁定窗口。地址栏与日期同步用 `src/lib/position.ts` 的 `withDateParam`（纯函数、有单测）。
 - CSS：JS 挂载后给 `<html>` 加 `.js-motion`，之后 `.reveal` 才有 `opacity: 0` / `translateY(20px)` 初值，进入视口加 `.is-in` 过渡到终态（0.7s）。**没有 JS 时内容默认可见**。只动 `transform` / `opacity` / `scale`。
 
