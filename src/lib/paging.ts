@@ -68,6 +68,34 @@ export function pageTarget(
 }
 
 /** 触控板惯性滚动每帧只发 1–3px 的 deltaY，所以按时间窗累积后再判定。 */
+export type PagingIntent = { kind: 'page'; direction: 1 | -1 } | { kind: 'edge'; edge: 'start' | 'end' };
+
+/**
+ * 键盘翻章：PageDown / PageUp 走与滚轮同一套章节吸附，Home / End 直接到整页两端。
+ * 带修饰键（Ctrl+PageDown 切换标签页之类）或 Shift（选字）的组合留给浏览器，其余键也不拦。
+ */
+export function pagingIntentForKey(event: {
+  key: string;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  altKey?: boolean;
+  shiftKey?: boolean;
+}): PagingIntent | null {
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return null;
+  switch (event.key) {
+    case 'PageDown':
+      return { kind: 'page', direction: 1 };
+    case 'PageUp':
+      return { kind: 'page', direction: -1 };
+    case 'Home':
+      return { kind: 'edge', edge: 'start' };
+    case 'End':
+      return { kind: 'edge', edge: 'end' };
+    default:
+      return null;
+  }
+}
+
 export const WHEEL_WINDOW_MS = 90;
 /** 一个时间窗内累积到这么多像素才算「真的想翻一页」（鼠标滚轮一格通常是 100+）。 */
 export const WHEEL_MIN_DELTA = 12;

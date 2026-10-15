@@ -16,7 +16,7 @@ import { PiSearchRun, type ScanSnapshot, type Scanner } from './lib/searchEngine
 import { probeSource, remoteWindowRange, type DigitSource } from './lib/digitSource';
 import { createScanPool, type ScanPool } from './lib/workerScanner';
 import { clearCache, loadCache, saveCache, type CachedResult } from './lib/resultCache';
-import { formatCompact, formatThousands, pad2, parseDateKey, toDateKey } from './lib/position';
+import { formatCompact, formatThousands, pad2, parseDateKey, toDateKey, withDateParam } from './lib/position';
 import { lookupAnswers, mergeAnswers, type DateAnswers } from './lib/answers';
 import type { DigitsStripProps, StripWriting } from './components/DigitsStrip';
 import type { SelfCheckState } from './components/Conventions';
@@ -93,6 +93,25 @@ export default function App() {
   const activeSection = useActiveSection(SECTION_IDS);
   // 整页滚动吸附：滚轮落在章节边界时一次翻一整段（长章节先原生滚到底）
   useSectionPaging(SECTION_IDS);
+
+  // 0) 地址栏跟随当前日期：换一天后的链接可以直接分享，浏览器前进 / 后退也能走
+  //    首次同步用 replaceState（深链进来不改历史），之后每次换日期 pushState
+  const urlSyncedRef = useRef(false);
+  useEffect(() => {
+    const next = withDateParam(window.location.href, activeKey, todayKey);
+    if (next !== window.location.href) {
+      if (urlSyncedRef.current) window.history.pushState(null, '', next);
+      else window.history.replaceState(null, '', next);
+    }
+    urlSyncedRef.current = true;
+  }, [activeKey, todayKey]);
+
+  // 0.1) 浏览器前进 / 后退：按地址栏里的 ?date= 重新取一天（没有参数就是今天）
+  useEffect(() => {
+    const onPopState = () => setSelectedKey(readDateParam());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // 0) 深链：#forms / #digits … 直接定位到章节（截图与分享用），不等入场动画
   useEffect(() => {

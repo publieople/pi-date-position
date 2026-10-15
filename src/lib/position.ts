@@ -74,6 +74,21 @@ export function weekdayName(date: Date): string {
   return '星期' + WEEKDAY_NAMES[date.getDay()];
 }
 
+/**
+ * 把某一天写进地址栏：默认的「今天」不带参数（链接保持干净），其余带上 ?date=，
+ * 哈希与非 date 参数原样保留；href 解析失败时原样返回。
+ */
+export function withDateParam(href: string, dateKey: string, todayKey: string): string {
+  try {
+    const url = new URL(href);
+    if (dateKey === todayKey) url.searchParams.delete('date');
+    else url.searchParams.set('date', dateKey);
+    return url.toString();
+  } catch {
+    return href;
+  }
+}
+
 export function describePosition(position: number): string {
   return '小数点后第 ' + formatThousands(position) + ' 位';
 }

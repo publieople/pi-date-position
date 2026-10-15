@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAGE_SLACK, accumulateWheel, pageTarget, sectionIndexAt, normalizeSections, type PagingSection, type WheelGesture } from '../src/lib/paging';
+import { PAGE_SLACK, accumulateWheel, pageTarget, pagingIntentForKey, sectionIndexAt, normalizeSections, type PagingSection, type WheelGesture } from '../src/lib/paging';
 
 const VIEWPORT = 800;
 const MAX_SCROLL = 4000;
@@ -91,6 +91,23 @@ describe('退化输入', () => {
     expect(pageTarget(SECTIONS, VIEWPORT, 0, 0, 1)).toBeNull();
   });
 });
+describe('键盘翻章', () => {
+  it('PageDown / PageUp 走章节吸附，Home / End 到整页两端', () => {
+    expect(pagingIntentForKey({ key: 'PageDown' })).toEqual({ kind: 'page', direction: 1 });
+    expect(pagingIntentForKey({ key: 'PageUp' })).toEqual({ kind: 'page', direction: -1 });
+    expect(pagingIntentForKey({ key: 'Home' })).toEqual({ kind: 'edge', edge: 'start' });
+    expect(pagingIntentForKey({ key: 'End' })).toEqual({ kind: 'edge', edge: 'end' });
+  });
+
+  it('带修饰键或 Shift 的组合留给浏览器，普通键不拦', () => {
+    expect(pagingIntentForKey({ key: 'PageDown', ctrlKey: true })).toBeNull();
+    expect(pagingIntentForKey({ key: 'PageDown', metaKey: true })).toBeNull();
+    expect(pagingIntentForKey({ key: 'Home', shiftKey: true })).toBeNull();
+    expect(pagingIntentForKey({ key: 'ArrowDown' })).toBeNull();
+    expect(pagingIntentForKey({ key: 'j' })).toBeNull();
+  });
+});
+
 describe('滚轮手势累积（触控板 1–3px 的小事件不会被丢掉）', () => {
   it('鼠标滚轮一格的大 delta 一次就够', () => {
     const first = accumulateWheel(null, 100, 0);

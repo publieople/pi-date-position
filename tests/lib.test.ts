@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CoverageTracker, findOccurrencesInText } from '../src/lib/searchCore';
 import { CHUNK_LADDER, chunkSizeAt, planChunk } from '../src/lib/searchEngine';
 import { encodingsFor, searchNeedles } from '../src/lib/encodings';
-import { byteOffsetOfPosition, formatThousands, parseDateKey, toDateKey } from '../src/lib/position';
+import { byteOffsetOfPosition, formatThousands, parseDateKey, toDateKey, withDateParam } from '../src/lib/position';
 import { tableNote } from '../src/lib/headline';
 import { createRemoteWindow, remoteWindowRange, REMOTE_MAX_PER_REQUEST } from '../src/lib/digitSource';
 
@@ -46,6 +46,32 @@ describe('日期解析', () => {
     expect(parseDateKey('2026-13-01')).toBeNull();
     expect(parseDateKey('2026-1-4')).toBeNull();
     expect(parseDateKey('')).toBeNull();
+  });
+});
+
+describe('地址栏里的日期参数', () => {
+  const TODAY = '2026-10-15';
+
+  it('默认的今天不带 ?date=，链接保持干净', () => {
+    expect(withDateParam('https://x.test/pi/?date=2026-10-14#forms', TODAY, TODAY)).toBe('https://x.test/pi/#forms');
+  });
+
+  it('选中别的日期时写进 ?date=，哈希原样保留', () => {
+    expect(withDateParam('https://x.test/pi/#forms', '2028-02-29', TODAY)).toBe(
+      'https://x.test/pi/?date=2028-02-29#forms',
+    );
+  });
+
+  it('不动其它查询参数，只替换 date', () => {
+    const out = withDateParam('https://x.test/pi/?a=1&date=2020-01-01&b=2', '2020-02-02', TODAY);
+    expect(out).toContain('a=1');
+    expect(out).toContain('b=2');
+    expect(out).toContain('date=2020-02-02');
+    expect(out).not.toContain('2020-01-01');
+  });
+
+  it('解析不了的 href 原样返回', () => {
+    expect(withDateParam('not a url', '2028-02-29', TODAY)).toBe('not a url');
   });
 });
 

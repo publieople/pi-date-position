@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { accumulateWheel, pageTarget, type PagingSection, type WheelGesture } from '../lib/paging';
+import { accumulateWheel, pageTarget, pagingIntentForKey, type PagingSection, type WheelGesture } from '../lib/paging';
 
 /** 一次翻页动画期间吞掉同一手势剩下的滚轮事件（毫秒）。 */
 const LOCK_MS = 700;
@@ -16,6 +16,14 @@ function scrollableAncestor(target: EventTarget | null, direction: 1 | -1): bool
     node = node.parentElement;
   }
   return false;
+}
+
+/** 输入框 / 文本域 / 可编辑区域里的按键不抢（Home、End 在日期框里是光标移动）。 */
+function isEditable(target: EventTarget | null): boolean {
+  const node = target instanceof HTMLElement ? target : null;
+  if (!node) return false;
+  if (node.isContentEditable) return true;
+  return /^(input|textarea|select)$/i.test(node.tagName);
 }
 
 /** 现场量章节几何（6 段，开销可忽略；量完即用，不缓存，避免动画期间位置过期）。 */
@@ -72,7 +80,31 @@ export function useSectionPaging(ids: readonly string[], enabled = true) {
       window.scrollTo({ top: target, behavior: 'smooth' });
     };
 
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isEditable(event.target)) return;
+      const intent = pagingIntentForKey(event);
+      if (!intent) return;
+      const viewportHeight = window.innerHeight;
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - viewportHeight);
+      if (intent.kind === 'edge') {
+        const edge = intent.edge === 'start' ? 0 : maxScroll;
+        if (Math.abs(edge - window.scrollY) < 1) return;
+        event.preventDefault();
+        window.scrollTo({ top: edge, behavior: 'smooth' });
+        return;
+      }
+      const target = pageTarget(measureSections(idList), viewportHeight, maxScroll, window.scrollY, intent.direction);
+      if (target === null || Math.abs(target - window.scrollY) < 1) return;
+      event.preventDefault();
+      lockUntil = Date.now() + LOCK_MS;
+      window.scrollTo({ top: target, behavior: 'smooth' });
+    };
+
     window.addEventListener('wheel', onWheel, { passive: false });
-    return () => window.removeEventListener('wheel', onWheel);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [key, enabled]);
 }
