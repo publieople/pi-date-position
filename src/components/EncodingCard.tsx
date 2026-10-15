@@ -1,7 +1,7 @@
 import type { Encoding } from '../lib/encodings';
 import type { NeedleState } from '../lib/searchEngine';
 import type { CachedResult } from '../lib/resultCache';
-import { describePosition, formatThousands } from '../lib/position';
+import { describePosition, formatCompact, formatThousands } from '../lib/position';
 
 export interface EncodingCardProps {
   encoding: Encoding;
@@ -32,6 +32,9 @@ export function EncodingCard({
 }: EncodingCardProps) {
   const found = state?.firstHit ?? null;
   const confirmed = Boolean(state?.firstHitConfirmed);
+  // 结论来自离线预计算表（覆盖整个十亿位深度）时，措辞要跟实时扫描区分开
+  const fromTable = state?.origin === 'table';
+  const depthLabel = state?.knownThrough ? formatCompact(state.knownThrough) : '';
   const statusClass = state
     ? state.status === 'found'
       ? 'ok'
@@ -41,7 +44,13 @@ export function EncodingCard({
           ? 'bad'
           : 'busy'
     : 'busy';
-  const statusText = state ? STATUS_TEXT[state.status] : '准备中';
+  const statusText = state
+    ? fromTable
+      ? state.status === 'found'
+        ? '已确认（预计算表）'
+        : depthLabel + '位内未出现'
+      : STATUS_TEXT[state.status]
+    : '准备中';
 
   if (variant === 'compact') {
     return (
@@ -73,14 +82,29 @@ export function EncodingCard({
         {found !== null && !confirmed ? <span className="chip chip-warn">暂定</span> : null}
       </div>
       <dl className="card-meta">
-        <div>
-          <dt>已扫描范围内出现</dt>
-          <dd>{state ? formatThousands(state.occurrences) + ' 次' : '—'}</dd>
-        </div>
-        <div>
-          <dt>其中已确认</dt>
-          <dd>{state ? formatThousands(state.occurrencesConfirmed) + ' 次' : '—'}</dd>
-        </div>
+        {fromTable ? (
+          <>
+            <div>
+              <dt>{depthLabel}位内出现</dt>
+              <dd>{formatThousands(state?.occurrences ?? 0)} 次</dd>
+            </div>
+            <div>
+              <dt>结论范围</dt>
+              <dd>前 {depthLabel} 位</dd>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <dt>已扫描范围内出现</dt>
+              <dd>{state ? formatThousands(state.occurrences) + ' 次' : '—'}</dd>
+            </div>
+            <div>
+              <dt>其中已确认</dt>
+              <dd>{state ? formatThousands(state.occurrencesConfirmed) + ' 次' : '—'}</dd>
+            </div>
+          </>
+        )}
       </dl>
       {cached ? (
         <div className="card-cache">

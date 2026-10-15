@@ -72,6 +72,10 @@ export interface NeedleState {
   occurrences: number;
   occurrencesConfirmed: number;
   status: NeedleStatus;
+  /** 结论来自哪：'scan' = 本次实时扫描（默认），'table' = 离线预计算答案表 */
+  origin?: 'scan' | 'table';
+  /** 表答案覆盖到哪一位（只有 origin === 'table' 时有意义） */
+  knownThrough?: number;
 }
 
 export type ScanPhase = 'searching' | 'done' | 'stopped' | 'error';
@@ -159,14 +163,19 @@ export class PiSearchRun {
     return Math.max(0, Math.min(this.tracker.contiguousThrough(1), this.source.maxDigits));
   }
 
-  /** 只有这些位上的出现才被完整判定过（含跨块串长） */
+  /**
+   * 全局保守水位：所有写法都能确认到这里，只有这些位上的出现才被完整判定过（含跨块串长）。
+   * 它按最长串算，所以对比它更短的串偏保守；单个写法自己确认到哪，见 stateFor 的按串长算法。
+   */
   private get checkedDigits(): number {
     return Math.max(0, this.scannedDigits - (this.maxNeedleLen - 1));
   }
 
   private stateFor(track: NeedleTrack): NeedleState {
     const positions = [...track.positions];
-    const confirmedLimit = this.checkedDigits;
+    // 每个写法按自己的串长算确认水位：整段都落在已连续扫描的区间里就算确认。
+    // 用全局最长串（8 位完整写法）会拖累 4 位写法，把明明已经看完的位次标成「暂定」。
+    const confirmedLimit = Math.max(0, this.scannedDigits - (track.needle.digits.length - 1));
     const occurrencesConfirmed = positions.filter((p) => p <= confirmedLimit).length;
     const firstHit = track.firstHit;
     const firstHitConfirmed = firstHit !== null && firstHit <= confirmedLimit;
@@ -328,6 +337,7 @@ export class PiSearchRun {
   }
 
   private allFirstHitsConfirmed(): boolean {
+    // 提前停止用全局水位（最保守的那种）；这里晚停几块只是多扫一点，不会误判
     const limit = this.checkedDigits;
     for (const track of this.tracks.values()) {
       if (track.firstHit === null || track.firstHit > limit) return false;

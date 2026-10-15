@@ -48,6 +48,17 @@ export function headline(
   return { text: '正在搜索 ' + primaryDigits + '（已扫描 ' + scanned + ' 位）', tone: 'searching' };
 }
 
+/**
+ * 首屏脚注（表答案）：说清位次来自哪、深到多少，以及**本次实时扫描到底能复验到多深**。
+ * 本机服务能到 10 亿位，在线演示版只有前 100 万位 —— 深处的位次不能吹成「会自己再验证一遍」。
+ */
+export function tableNote(knownThrough: number, reach: number, position: number): string {
+  const head = '位次来自离线预计算表（前 ' + formatCompact(knownThrough) + '位）';
+  if (reach <= 0) return head + '；本次实时扫描不可用，没法在浏览器里复验';
+  if (reach >= position) return head + '；下面的实时扫描会自己再验证一遍';
+  return head + '；本次实时扫描只有前 ' + formatCompact(reach) + '位，这一位没法在浏览器里现场复验';
+}
+
 export interface HeroNumber {
   /** 巨型数字要显示的数值；null 表示现在还没有数字可显示 */
   value: number | null;

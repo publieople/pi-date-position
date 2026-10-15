@@ -122,6 +122,36 @@ describe('水位与确认', () => {
     await run1.start();
     expect(results.some((confirmed) => confirmed === false)).toBe(true);
   });
+
+  it('每个写法按自己的串长算确认水位，不被更长的写法拖累', async () => {
+    let text = zeros(200_000);
+    // 两条 6 位串之间空出两位，避免相邻的同数字串被切成滑窗重叠的多个命中
+    text = put(text, 63_994, '222222');
+    text = put(text, 64_002, '222222');
+    text = put(text, 64_008, '1111');
+    text = put(text, 70_000, '999999999999');
+    const snapshots: ScanSnapshot[] = [];
+    const state = await run(
+      new FakeSource(text),
+      needle('1111').concat(needle('222222'), needle('999999999999')),
+      200_000,
+      { onUpdate: (snapshot) => snapshots.push(snapshot) }
+    ).start();
+    // 第 0 块取回 64_000 + (12 - 1) = 64_011 位。全局水位 = 64_011 - 11 = 64_000（保守），
+    // 但 4 位写法自己的水位是 64_011 - 3 = 64_008，落在它里面的命中都算确认。
+    const firstBlock = snapshots.find((snapshot) => snapshot.scannedDigits === 64_011);
+    expect(firstBlock).toBeTruthy();
+    expect(firstBlock?.checkedDigits).toBe(64_000);
+    const early = new Map((firstBlock?.needles ?? []).map((n) => [n.id, n]));
+    expect(early.get('1111')?.firstHit).toBe(64_008);
+    expect(early.get('1111')?.firstHitConfirmed).toBe(true);
+    expect(early.get('222222')?.occurrences).toBe(2);
+    expect(early.get('222222')?.occurrencesConfirmed).toBe(2);
+    const finalById = new Map(state.needles.map((n) => [n.id, n]));
+    expect(finalById.get('1111')?.status).toBe('found');
+    expect(finalById.get('222222')?.status).toBe('found');
+    expect(finalById.get('999999999999')?.firstHit).toBe(70_000);
+  });
 });
 
 describe('缺口与未找到', () => {

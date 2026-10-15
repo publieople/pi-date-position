@@ -16,7 +16,8 @@ import { PiSearchRun, type ScanSnapshot, type Scanner } from './lib/searchEngine
 import { probeSource, type DigitSource } from './lib/digitSource';
 import { createScanPool, type ScanPool } from './lib/workerScanner';
 import { clearCache, loadCache, saveCache, type CachedResult } from './lib/resultCache';
-import { pad2, parseDateKey, toDateKey } from './lib/position';
+import { formatCompact, formatThousands, pad2, parseDateKey, toDateKey } from './lib/position';
+import { lookupAnswers, mergeAnswers, type DateAnswers } from './lib/answers';
 import type { DigitsStripProps, StripWriting } from './components/DigitsStrip';
 import type { SelfCheckState } from './components/Conventions';
 
@@ -81,6 +82,8 @@ export default function App() {
   const [selfCheck, setSelfCheck] = useState<SelfCheckState>({ status: 'idle' });
   const [showExtras, setShowExtras] = useState(false);
   const [workers, setWorkers] = useState(1);
+  // 离线预计算答案表：静态站也能给出十亿位深度的位次；取不到就只靠实时扫描
+  const [answers, setAnswers] = useState<DateAnswers | null>(null);
 
   const poolRef = useRef<ScanPool | null>(null);
   const runRef = useRef<PiSearchRun | null>(null);
@@ -104,6 +107,23 @@ export default function App() {
     setCache(loadCache(activeKey));
     persistedRef.current = new Set();
   }, [activeKey]);
+
+  // 1.5) 预计算答案表：按日期取表，失败（表没生成 / 格式变了 / 网络问题）就退回纯实时扫描
+  useEffect(() => {
+    let alive = true;
+    setAnswers(null);
+    lookupAnswers(date.getFullYear(), date.getMonth() + 1, date.getDate()).then(
+      (value) => {
+        if (alive) setAnswers(value);
+      },
+      () => {
+        if (alive) setAnswers(null);
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [date]);
 
   // 2) Worker 池
   useEffect(() => {
@@ -174,20 +194,41 @@ export default function App() {
     };
   }, [source, needleKey, targetDigits, runToken, activeKey, needles]);
 
-  const primaryState = snapshot?.needles.find((needle) => needle.digits === primaryDigits);
+  // 表答案 + 实时扫描：needle 结论以表为准（origin: 'table'），进度字段保持实时扫描的语义
+  const view = useMemo<ScanSnapshot | null>(() => {
+    if (!answers) return snapshot;
+    const base: ScanSnapshot = snapshot ?? {
+      phase: 'searching',
+      scannedDigits: 0,
+      checkedDigits: 0,
+      targetDigits,
+      availableDigits: Math.max(answers.depth, targetDigits),
+      bytesFetched: 0,
+      chunksDone: 0,
+      elapsedMs: 0,
+      etaMs: null,
+      gaps: [],
+      needles: [],
+    };
+    return { ...base, needles: mergeAnswers(base.needles, answers) };
+  }, [snapshot, answers, targetDigits]);
+
+  const primaryState = view?.needles.find((needle) => needle.digits === primaryDigits);
 
   // 首屏主写法（8 位）在 1000 万位内往往还没出现，所以数字带优先展示「这一天里最早确认命中的写法」，
   // 有确认命中就用确认的，其次才用暂定的，都没有才显示说明文案。
   const displayNeedle = useMemo(() => {
-    if (!snapshot) return null;
+    if (!view) return null;
     const pick = (digits: string) => {
-      const state = snapshot.needles.find((needle) => needle.digits === digits);
+      const state = view.needles.find((needle) => needle.digits === digits);
       if (!state || state.firstHit === null) return null;
       return {
         digits,
         position: state.firstHit,
         tentative: !state.firstHitConfirmed,
         label: encodings.find((encoding) => encoding.digits === digits)?.label ?? digits,
+        origin: state.origin,
+        knownThrough: state.knownThrough,
       };
     };
     const direct = pick(primaryDigits);
@@ -205,7 +246,7 @@ export default function App() {
       if (candidate) return candidate;
     }
     return null;
-  }, [snapshot, encodings, needles, primaryDigits]);
+  }, [view, encodings, needles, primaryDigits]);
 
   const displayDigits = displayNeedle ? displayNeedle.digits : null;
   const displayPosition = displayNeedle ? displayNeedle.position : null;
@@ -234,8 +275,25 @@ export default function App() {
     const before = 40;
     const length = displayDigits.length;
     const from = Math.max(1, displayPosition - before);
-    const count = Math.min(before * 2 + length, source.maxDigits - from + 1);
     const writing: StripWriting = { label: displayLabel, digits: displayDigits, tentative: displayTentative };
+    // 位次（表答案常常在几亿位）可能超出当前数据源能取到的范围：这时取不到附近的数字，直接说明
+    if (from > source.maxDigits) {
+      setStrip({
+        status: 'idle',
+        from: null,
+        digits: null,
+        position: displayPosition,
+        writing,
+        message:
+          '它落在小数点后第 ' +
+          formatThousands(displayPosition) +
+          ' 位，而当前数据源只到前 ' +
+          formatCompact(source.maxDigits) +
+          ' 位 —— 附近的数字取不回来。在本机跑 pnpm dev 可以取到实位。',
+      });
+      return;
+    }
+    const count = Math.min(before * 2 + length, source.maxDigits - from + 1);
     let alive = true;
     setStrip({ status: 'loading', from: null, digits: null, position: displayPosition, writing });
     source.fetchRange(from, count).then(
@@ -318,7 +376,7 @@ export default function App() {
         isToday={isToday}
         primaryDigits={primaryDigits}
         primaryState={primaryState}
-        snapshot={snapshot}
+        snapshot={view}
         source={source}
         answer={displayNeedle}
       />
@@ -327,13 +385,13 @@ export default function App() {
         {source?.kind === 'unavailable' ? (
           <p className="notice notice-bad">
             没有可用的 π 数据源：本机服务未启动，且站点自带的 <code>public/pi-1m.txt</code> 读取失败（可执行{' '}
-            <code>pnpm fetch-fallback</code> 重新生成）。
+            <code>pnpm fetch-fallback</code> 重新生成）。位次结论仍来自离线预计算表，但实时扫描与数字带暂时不可用。
           </p>
         ) : null}
 
         <FormsChapter
           encodings={encodings}
-          snapshot={snapshot}
+          snapshot={view}
           cache={cache}
           showExtras={showExtras}
           onToggleExtras={() => setShowExtras((value) => !value)}
@@ -365,7 +423,7 @@ export default function App() {
           onToday={() => setSelectedKey(null)}
           onRandom={handleRandom}
           encodings={encodings}
-          snapshot={snapshot}
+          snapshot={view}
           cache={cache}
         />
 

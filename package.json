@@ -17,6 +17,8 @@
     "test": "vitest run",
     "fetch-fallback": "node scripts/fetch-fallback.mjs",
     "crosscheck": "node scripts/crosscheck.mjs",
+    "answers": "node scripts/answers.mjs",
+    "answers:selftest": "node scripts/answers.mjs --selftest",
     "prewarm": "node scripts/prewarm.mjs"
   },
   "dependencies": {

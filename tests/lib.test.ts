@@ -3,6 +3,7 @@ import { CoverageTracker, findOccurrencesInText } from '../src/lib/searchCore';
 import { CHUNK_LADDER, chunkSizeAt, planChunk } from '../src/lib/searchEngine';
 import { encodingsFor, searchNeedles } from '../src/lib/encodings';
 import { byteOffsetOfPosition, formatThousands, parseDateKey, toDateKey } from '../src/lib/position';
+import { tableNote } from '../src/lib/headline';
 
 const dateOf = (key: string): Date => {
   const date = parseDateKey(key);
@@ -85,6 +86,30 @@ describe('日期写法', () => {
     for (const needle of searchNeedles(encodingsFor(dateOf('2026-10-14')))) {
       expect(needle.id).toBe(needle.digits);
     }
+  });
+});
+
+describe('首屏脚注（表答案）', () => {
+  it('本机数据源够得着这个位次：说会自己再验证一遍', () => {
+    expect(tableNote(1_000_000_000, 1_000_000_000, 521_625_248)).toBe(
+      '位次来自离线预计算表（前 10 亿位）；下面的实时扫描会自己再验证一遍'
+    );
+  });
+
+  it('在线演示版只有 100 万位：不吹「会再验证一遍」', () => {
+    expect(tableNote(1_000_000_000, 1_000_000, 521_625_248)).toBe(
+      '位次来自离线预计算表（前 10 亿位）；本次实时扫描只有前 100 万位，这一位没法在浏览器里现场复验'
+    );
+  });
+
+  it('位次本身落在静态副本范围内：仍然算能复验', () => {
+    expect(tableNote(1_000_000_000, 1_000_000, 2_563)).toContain('下面的实时扫描会自己再验证一遍');
+  });
+
+  it('数据源不可用：明说没法复验', () => {
+    expect(tableNote(1_000_000_000, 0, 521_625_248)).toBe(
+      '位次来自离线预计算表（前 10 亿位）；本次实时扫描不可用，没法在浏览器里复验'
+    );
   });
 });
 

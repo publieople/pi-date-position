@@ -25,6 +25,9 @@ export function Conventions({ selfCheck, sourceKind }: ConventionsProps) {
           <li>
             <b>「已确认」的含义</b>：只有当第 1 位到「命中起点 + 数字串长度 - 1」之间全部被扫描过，该位置才算已确认；否则显示为暂定。
           </li>
+          <li>
+            <b>位次从哪来</b>：每张卡片都写明结论来自<b>离线预计算表</b>（1900–2100 的每一天，深度 10 亿位）还是本次实时扫描。表是预先扫好的，实时扫描会独立地再把同样的写法验证一遍 —— 但能验到多深取决于数据源：本机服务够到 10 亿位，在线演示版只带前 100 万位，更深的位次只能信任预计算表。
+          </li>
         </ul>
       </article>
 
@@ -39,12 +42,12 @@ export function Conventions({ selfCheck, sourceKind }: ConventionsProps) {
             （10 亿位小数，1,000,000,002 字节）。{' '}
             {sourceKind === 'server' ? (
               <>
-                本机服务按 4,000,000 字节一块做 Range 拉取并缓存到 <code>.pi-cache/</code>，浏览器不直连上游。
+                本机服务按 4,000,000 字节一块做 Range 拉取并缓存到 <code>.pi-cache/</code>，浏览器不直连上游；位次速查读的是随仓库发布的离线答案表（<code>public/answers/</code>）。
               </>
             ) : (
               <>
-                在线演示版读的是站点自带的前 1,000,000 位副本（<code>public/pi-1m.txt</code>），要查更深的位置就在本机跑{' '}
-                <code>pnpm dev</code>。
+                在线演示版的位次读站点自带的离线答案表（1900–2100 每一天，深度 10 亿位，<code>public/answers/</code>）；
+                另有一份前 1,000,000 位副本（<code>public/pi-1m.txt</code>）供实时验证与数字带使用。
               </>
             )}
           </li>
@@ -60,7 +63,7 @@ export function Conventions({ selfCheck, sourceKind }: ConventionsProps) {
             {sourceKind === 'server' ? (
               <> 所以页面上的每一次取数都经过本机服务（<code>/api/digits</code>）。</>
             ) : (
-              <> 在线演示版只读站点自带的那一份前 100 万位（同源文件）；要 10 亿位就在本机跑 <code>pnpm dev</code>，由本机服务代取。</>
+              <> 在线演示版读的是同源的离线答案表与前 100 万位副本；要现场扫到 10 亿位就在本机跑 <code>pnpm dev</code>，由本机服务代取。</>
             )}
           </li>
         </ul>
