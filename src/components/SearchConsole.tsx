@@ -55,7 +55,7 @@ export function SearchConsole({
       <div
         className="bar"
         role="progressbar"
-        aria-label={'实时扫描进度：前 ' + formatCompact(target) + ' 位'}
+        aria-label={'实时扫描进度：前 ' + formatCompact(target) + '位'}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(percent)}

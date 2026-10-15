@@ -2,7 +2,7 @@ import type { NeedleState, ScanSnapshot } from '../../lib/searchEngine';
 import type { DigitSource } from '../../lib/digitSource';
 import type { StripWriting } from '../DigitsStrip';
 import { formatChineseDate, formatClock, formatCompact, formatThousands } from '../../lib/position';
-import { headline, heroNumber, tableNote } from '../../lib/headline';
+import { headline, heroNumber, swappedNote, tableNote } from '../../lib/headline';
 import { useCountUp } from '../../hooks/useCountUp';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { useScrollProgress } from '../../hooks/useScrollProgress';
@@ -64,13 +64,20 @@ export function HeroStage({
 
   // 「扫到 N 位就命中」只在首屏数字就是主写法（8 位）时成立，其它写法不能这么说；
   // 表答案不能套这句话，得说清它来自离线答案表、实时扫描只是再验证一遍。
+  // 首屏显示的不是主写法（那天的主写法在前 10 亿位内从未出现）时，得说明这个替换从何而来。
+  const swapped = answer !== null && answer.digits !== primaryDigits;
+  const primaryAbsent = primaryState != null && primaryState.firstHit === null;
   const noteText =
-    answer && snapshot && answer.digits === primaryDigits
+    answer && snapshot
       ? fromTable
-        // 第三个参数是「这一轮实时扫描真正会覆盖到多深」，不是数据源的容量：
-        // 本机服务够到 10 亿位，但默认只扫到 1000 万位，深处的位次不能吹成「会自己再验证一遍」
-        ? tableNote(answer.knownThrough ?? 0, scanReach, answer.position)
-        : '扫到 ' + formatCompact(snapshot.scannedDigits) + ' 位就命中，命中即停'
+        ? swapped && primaryAbsent
+          ? swappedNote(primaryDigits, answer.knownThrough ?? 0)
+          : // 第三个参数是「这一轮实时扫描真正会覆盖到多深」，不是数据源的容量：
+            // 本机服务够到 10 亿位，但默认只扫到 1000 万位，深处的位次不能吹成「会自己再验证一遍」
+            tableNote(answer.knownThrough ?? 0, scanReach, answer.position)
+        : answer.digits === primaryDigits
+          ? '扫到 ' + formatCompact(snapshot.scannedDigits) + ' 位就命中，命中即停'
+          : ''
       : '';
 
   const parallax = reduced

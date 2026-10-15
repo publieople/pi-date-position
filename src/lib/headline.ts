@@ -59,6 +59,16 @@ export function tableNote(knownThrough: number, reach: number, position: number)
   return head + '；本次实时扫描只有前 ' + formatCompact(reach) + '位，这一位没法在浏览器里现场复验';
 }
 
+/**
+ * 首屏换成别的写法时的脚注：1900–2100 里有几天的最长写法（8 位完整写法）在前 10 亿位内
+ * 从未出现，首屏只好展示最先出现的那种写法 —— 这里说明为什么数字不对应用户第一眼找的写法。
+ */
+export function swappedNote(primaryDigits: string, knownThrough: number): string {
+  return (
+    '首屏显示的是最先出现的那种写法：' + primaryDigits + ' 这个完整写法在前 ' + formatCompact(knownThrough) + '位内没有出现'
+  );
+}
+
 export interface HeroNumber {
   /** 巨型数字要显示的数值；null 表示现在还没有数字可显示 */
   value: number | null;

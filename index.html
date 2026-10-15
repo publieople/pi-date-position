@@ -32,6 +32,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- 页面靠 JavaScript 现算（读随站点发布的离线答案表与 π 数字副本），关掉脚本时至少给一句话 -->
+    <noscript>
+      <p style="margin: 24px; font: 16px/1.7 system-ui, sans-serif">
+        这个页面靠 JavaScript 现算：它要读随站点发布的离线答案表（1900–2100 每一天的位次）和 π 的数字副本，把日期换算成位次。请开启 JavaScript 后刷新。
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

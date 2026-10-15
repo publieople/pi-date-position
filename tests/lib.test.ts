@@ -4,7 +4,7 @@ import { CHUNK_LADDER, chunkSizeAt, planChunk } from '../src/lib/searchEngine';
 import { encodingsFor, searchNeedles } from '../src/lib/encodings';
 import { byteOffsetOfPosition, clampDateKey, formatThousands, parseDateKey, toDateKey, withDateParam } from '../src/lib/position';
 import { ANSWER_RANGE } from '../src/lib/answers';
-import { tableNote } from '../src/lib/headline';
+import { swappedNote, tableNote } from '../src/lib/headline';
 import { createRemoteWindow, remoteWindowRange, REMOTE_MAX_PER_REQUEST } from '../src/lib/digitSource';
 
 const dateOf = (key: string): Date => {
@@ -171,6 +171,20 @@ describe('首屏脚注（表答案）', () => {
     expect(tableNote(1_000_000_000, 0, 521_625_248)).toBe(
       '位次来自离线答案表（前 10 亿位）；本次实时扫描不可用，没法在浏览器里复验'
     );
+  });
+});
+
+// 1900–2100 里有 6 天的最长写法（8 位完整写法）在前 10 亿位内从未出现，
+// 首屏会换成最先出现的那种写法 —— 脚注必须说明这个替换，否则数字看起来像是答错了。
+describe('首屏脚注（换成别的写法时）', () => {
+  it('说明主写法没有出现，并点出展开的写法本身', () => {
+    expect(swappedNote('19201130', 1_000_000_000)).toBe(
+      '首屏显示的是最先出现的那种写法：19201130 这个完整写法在前 10 亿位内没有出现'
+    );
+  });
+
+  it('深度跟着答案表的口径走', () => {
+    expect(swappedNote('26102064', 1_000_000)).toContain('前 100 万位内没有出现');
   });
 });
 
