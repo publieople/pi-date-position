@@ -46,11 +46,11 @@ export function HeroStage({
 
   const shown = kind === 'position' ? animated : value;
   const display = shown === null ? '—' : formatThousands(shown);
-  // 位次来自离线预计算表还是本次实时扫描，首屏就必须说清楚
+  // 位次来自离线答案表还是本次实时扫描，首屏就必须说清楚
   const fromTable = answer?.origin === 'table';
   const kindLabel = answer
     ? fromTable
-      ? '已确认的位次 · 离线预计算表 · ' + answer.label + ' ' + answer.digits
+      ? '已确认的位次 · 离线答案表 · ' + answer.label + ' ' + answer.digits
       : (answer.tentative ? '暂定位次' : '已确认的位次') + ' · ' + answer.label + ' ' + answer.digits
     : kind === 'scanned'
       ? '已扫描的位数'
@@ -63,7 +63,7 @@ export function HeroStage({
   const caption = answer ? answer.digits + ' 首次出现在 π 的小数点后' : note.text;
 
   // 「扫到 N 位就命中」只在首屏数字就是主写法（8 位）时成立，其它写法不能这么说；
-  // 表答案不能套这句话，得说清它来自离线预计算、实时扫描只是再验证一遍。
+  // 表答案不能套这句话，得说清它来自离线答案表、实时扫描只是再验证一遍。
   const noteText =
     answer && snapshot && answer.digits === primaryDigits
       ? fromTable

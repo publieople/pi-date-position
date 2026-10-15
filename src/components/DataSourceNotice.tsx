@@ -19,7 +19,7 @@ export function DataSourceNotice({ sourceKind, answersMissing }: DataSourceNotic
         <code>pnpm fetch-fallback</code> 重新生成）。
         {answersMissing
           ? '离线答案表也没取到，这一轮连预计算的位次都没有。'
-          : '位次结论仍来自离线预计算表，但实时扫描与数字带暂时不可用。'}
+          : '位次结论仍来自离线答案表，但实时扫描与数字带暂时不可用。'}
       </p>
     );
   }

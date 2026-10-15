@@ -32,7 +32,7 @@ export function EncodingCard({
 }: EncodingCardProps) {
   const found = state?.firstHit ?? null;
   const confirmed = Boolean(state?.firstHitConfirmed);
-  // 结论来自离线预计算表（覆盖整个十亿位深度）时，措辞要跟实时扫描区分开
+  // 结论来自离线答案表（覆盖整个十亿位深度）时，措辞要跟实时扫描区分开
   const fromTable = state?.origin === 'table';
   const depthLabel = state?.knownThrough ? formatCompact(state.knownThrough) : '';
   const statusClass = state
@@ -47,7 +47,7 @@ export function EncodingCard({
   const statusText = state
     ? fromTable
       ? state.status === 'found'
-        ? '已确认（预计算表）'
+        ? '已确认（离线答案表）'
         : depthLabel + '位内未出现'
       : STATUS_TEXT[state.status]
     : '准备中';
@@ -114,7 +114,7 @@ export function EncodingCard({
               ' 位（当时扫到 ' +
               formatThousands(cached.scannedThrough) +
               ' 位' +
-              (cached.position === found ? '，与预计算表一致' : '，与预计算表不一致（以预计算表为准）') +
+              (cached.position === found ? '，与离线答案表一致' : '，与离线答案表不一致（以离线答案表为准）') +
               '）'
             : '上次记录：第 ' +
               formatThousands(cached.position) +

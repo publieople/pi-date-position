@@ -81,7 +81,7 @@ export function useDigitsStrip(options: DigitsStripOptions): StripState {
                 remote.label +
                 '（本站内置副本只到前 ' +
                 formatCompact(source.maxDigits) +
-                '位）；位次结论仍以离线预计算表为准。',
+                '位）；位次结论仍以离线答案表为准。',
             });
           },
           (error: unknown) => {

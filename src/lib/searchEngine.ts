@@ -72,7 +72,7 @@ export interface NeedleState {
   occurrences: number;
   occurrencesConfirmed: number;
   status: NeedleStatus;
-  /** 结论来自哪：'scan' = 本次实时扫描（默认），'table' = 离线预计算答案表 */
+  /** 结论来自哪：'scan' = 本次实时扫描（默认），'table' = 离线答案表 */
   origin?: 'scan' | 'table';
   /** 表答案覆盖到哪一位（只有 origin === 'table' 时有意义） */
   knownThrough?: number;
