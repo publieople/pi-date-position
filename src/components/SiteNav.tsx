@@ -22,6 +22,7 @@ export function SiteNav({ items, active, hidden }: SiteNavProps) {
           key={item.id}
           href={'#' + item.id}
           className={'rail-dot' + (item.id === active ? ' rail-dot-active' : '')}
+          aria-current={item.id === active ? 'true' : undefined}
           onClick={(event) => {
             event.preventDefault();
             const node = document.getElementById(item.id);

@@ -89,13 +89,24 @@ export function HeroStage({
           <span className="stage-clock">{formatClock(now)}</span>
         </p>
         <p className="stage-kicker">{kindLabel}</p>
-        <div className="stage-number">
+        {/* 巨型数字是逐帧计数的动画，对读屏来说是无意义的中间值：
+            这里整块隐藏，另给一个只在结论稳定时才变动的 sr-only live 区域 */}
+        <div className="stage-number" aria-hidden="true">
           {prefix ? <span className="stage-number-prefix">{prefix}</span> : null}
-          <span className="stage-number-value" aria-live="polite">
-            {display}
-          </span>
+          <span className="stage-number-value">{display}</span>
           {suffix ? <span className="stage-number-suffix">{suffix}</span> : null}
         </div>
+        <p className="sr-only" aria-live="polite">
+          {value === null
+            ? ''
+            : kind === 'position'
+              ? (answer ? answer.label + ' ' + answer.digits + ' 首次出现在 π 的小数点后第 ' : '位次在 π 的小数点后第 ') +
+                formatThousands(value) +
+                ' 位'
+              : kind === 'scanned'
+                ? '还没锁定位次，已扫描到第 ' + formatThousands(value) + ' 位'
+                : ''}
+        </p>
         <p className="stage-caption">{caption}</p>
         {noteText ? <p className="stage-note">{noteText}</p> : null}
         {primaryState?.firstHitConfirmed ? null : source?.kind === 'server' ? (
