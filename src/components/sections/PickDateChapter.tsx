@@ -1,6 +1,7 @@
 import type { Encoding } from '../../lib/encodings';
 import type { CachedResult } from '../../lib/resultCache';
 import type { ScanSnapshot } from '../../lib/searchEngine';
+import type { CopyState } from '../../lib/share';
 import { DatePicker } from '../DatePicker';
 import { EncodingCard } from '../EncodingCard';
 import { Reveal, Section } from '../Section';
@@ -14,6 +15,8 @@ export interface PickDateChapterProps {
   onStep: (days: number) => void;
   onToday: () => void;
   onRandom: () => void;
+  copyState: CopyState;
+  onCopyLink: () => void;
   encodings: Encoding[];
   snapshot: ScanSnapshot | null;
   cache: Record<string, CachedResult>;
@@ -29,6 +32,8 @@ export function PickDateChapter({
   onStep,
   onToday,
   onRandom,
+  copyState,
+  onCopyLink,
   encodings,
   snapshot,
   cache,
@@ -51,6 +56,8 @@ export function PickDateChapter({
           onStep={onStep}
           onToday={onToday}
           onRandom={onRandom}
+          copyState={copyState}
+          onCopyLink={onCopyLink}
         />
       </Reveal>
       <Reveal index={1} step={120} className="mini-wrap">

@@ -27,12 +27,12 @@ pnpm dev        # http://127.0.0.1:5273
 | 一个日期，六种写法 | `#forms` | 6 张写法卡片（3×2） | 卡片按 90ms 依次浮入；每张显示自己的位次统计 |
 | 它在 π 的哪里 | `#digits` | 命中处前后各 40 位的数字带 + 背景数字流 | 数字带自左滑入，命中片段逐位点亮（每位 30ms） |
 | 我们是怎么找到的 | `#engine` | 实时扫描数据 + 深搜 CTA（1 亿 / 10 亿）+ 实现要点 | 6 个方块依次点亮并循环；进度条从 0 滚到实际值 |
-| 换一天试试 | `#pick` | 日期选择器 + 所选日期 6 种写法的紧凑结果行（可选范围就是答案表覆盖的 1900-01-01 – 2100-12-31） | 随章节浮入 |
+| 换一天试试 | `#pick` | 日期选择器 + 所选日期 6 种写法的紧凑结果行（可选范围就是答案表覆盖的 1900-01-01 – 2100-12-31）+「复制链接」按钮 | 随章节浮入 |
 | 口径与来源 | `#trust` | 位次口径 / 数据来源与交叉验证 / 数据自检徽章 | 三张卡片横向错位浮入 |
 
 - 右侧固定导航轨（≥900px 显示）标出当前章节，点击平滑滚动；首屏时不显示。
 - 深链：`http://127.0.0.1:5273/#forms` 之类直接定位到章节（挂载时瞬时定位，供截图与分享）。
-- 指定日期：`http://127.0.0.1:5273/?date=2028-02-29`（非法值忽略，回落到今天；超出 1900-01-01 – 2100-12-31 的会被夹回边界，\`clampDateKey\` 是纯函数、有单测）；在页面上换日期后地址栏会跟着变（今天不带参数），复制链接即可分享当前这一天，浏览器后退回到上一天。日期框也带同样的 \`min\` / \`max\`，日期选择器下面写明范围。
+- 指定日期：`http://127.0.0.1:5273/?date=2028-02-29`（非法值忽略，回落到今天；超出 1900-01-01 – 2100-12-31 的会被夹回边界，`clampDateKey` 是纯函数、有单测）；在页面上换日期后地址栏会跟着变（今天不带参数），复制链接即可分享当前这一天，浏览器后退回到上一天。日期框也带同样的 `min` / `max`，日期选择器下面写明范围。日期选择器旁边有「复制链接」按钮（`src/lib/share.ts` 的 `copyText`：优先 `navigator.clipboard`，不可用或权限被拒时退回隐藏文本框 + `execCommand`；两种都不行就如实显示「复制失败」，不假装复制了）。
 - 首屏的位次来自**离线答案表**（深度 10 亿位，覆盖 1900–2100 的每一天），打开即有结论；卡片上会写明「已确认（离线答案表）」。表还在路上（或者这一轮取表失败）时，首屏先显示实时扫描进度 —— 表在路上的那几帧不会先报「另一种写法」的暂定位次、再被表的结论整条换掉（`answersDate` 记的是当前这份表属于哪一天，换日期时先清空）。同一时间浏览器还在跑实时扫描（首屏默认目标 **1000 万位**，可在 `#engine` 里选 1 亿 / 10 亿），用来独立验证表里的结论 —— 规则写死在 `src/lib/answers.ts` 的 `mergeSlot`：表里有位次就以表为准（数字带与首屏都跟着表走），只有「表说深度内没出现、实时扫描却找到了」这种情况才以实时扫描为准（表可能旧了）；卡片上那条「上次实时扫描记到」是本地缓存里的旧记录，与表一致时会写明。表里没覆盖到的写法（比如带分隔符的写法）仍走实时扫描，8 位完整写法在实时水位内还没锁定时，卡片会写明「未扫完」。首屏脚注会如实说清这一轮实时扫描能复验到多深 —— 取的是**本轮扫描的目标深度**（默认 1000 万位，静态版为站点自带的 100 万位），而不是数据源的容量，所以本机默认状态下 5 亿位的结论不会写着「下面的实时扫描会自己再验证一遍」；在 `#engine` 里把目标调到 1 亿 / 10 亿后，脚注会跟着改成「会自己再验证一遍」（`src/lib/headline.ts` 的 `tableNote`）。如果这一天的主写法（8 位完整写法）在前 10 亿位内从未出现（1900–2100 里只有 6 天如此），首屏会换成最先出现的那种写法，并写明来由：「首屏显示的是最先出现的那种写法：19201130 这个完整写法在前 10 亿位内没有出现」（`src/lib/headline.ts` 的 `swappedNote`）—— 否则读者会以为自己看错了写法。
 - **滚动吸附**：`html { scroll-snap-type: y proximity }` 给每章 `scroll-snap-align: start`，再由 `useSectionPaging` 接管滚轮：落在章节边界时一次翻一整段（700ms 锁定窗口防连翻；触控板一次滑动会发几十条 1–3px 的事件，`src/lib/paging.ts` 的 `accumulateWheel` 把「距上一条事件 90ms 内」的 deltaY 一路累加、攒够 12px 才判定，单条 1–3px 的小事件不会被丢掉，也不会因为一次滑动拖得久就把进度清零），比一屏高的章节先原生滚到底再翻页，一屏装得下的章节上下都直接翻页。键盘走同一套章节吸附：`PageDown` / `PageUp` 翻章、`Home` / `End` 到整页两端（带 Ctrl / Shift 的组合、以及焦点在输入框里时不拦），判定在纯函数 `pagingIntentForKey` 里。用 `proximity` 而不是 `mandatory`，避免读长章节时被弹回段首；触屏、拖动滚动条与 `prefers-reduced-motion: reduce` 都不吸附。
 - **动效可关**：遵守 `prefers-reduced-motion: reduce` —— 所有入场、计数、点亮、数字流与视差一次性归零，内容直接呈现终态。
@@ -95,7 +95,8 @@ pnpm answers -- --depth 2000000000   # 想更深也可以（文件体积随之�
 - `src/lib/motion.ts`：`clamp01` / `easeOutCubic` / `stagger` / `revealDelay` / `countUpValue` / `scrollThroughProgress` 等纯函数（有单测）。
 - `src/lib/present.ts`：首屏展示哪一条写法的选择逻辑（`pickDisplayNeedle`）—— 主写法确认了就用它，否则取「已确认写法里位次最靠前的」，最后才退到暂定位次；纯函数、有单测（以前埋在 `App.tsx` 里没有测试）。
 - `src/lib/position.ts`：位次口径与格式化 —— `formatThousands`（`1,234,567`）、`formatCompact`（`12.3 万` / `4.56 亿`）、`withUnit`（紧凑数字接单位：以中文单位结尾就直接相连得「100 万位」，以阿拉伯数字结尾才留一格得「1,234 位」，页面上不会再出现「100 万 位」这种双空格）。
-- `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮 + 键盘翻章）、`useDateSelection`（日期状态 + `?date=` 深链 + 地址栏同步 + 夹回 1900–2100）、`useInitialHash`（挂载时滚到 `#hash` 章节）、`usePiSource` / `useScanPool`（探测数据源、建 Worker 池）、`useAnswersForDate`（这一天的表：`table` / `waiting` / `missing`）、`useSearchSession`（启动扫描 + 本地缓存）、`useDigitsStrip`（数字带，远位走 api.pi.delivery）、`useSelfCheck`（第 762 位起 6 位）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` / `accumulateWheel` / `pagingIntentForKey` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮与页面键、维持 700ms 锁定窗口。地址栏与日期同步用 `src/lib/position.ts` 的 `withDateParam`（纯函数、有单测）。
+- `src/lib/share.ts`：复制分享链接 —— `copyText(text, env)` 优先异步剪贴板、失败后退回兜底方案，返回是否成功（有单测）；`browserCopyEnvironment()` 组装浏览器里的两套方案。
+- `src/hooks/`：`useCopyLink`（点一次复制、1.6 秒后按钮回到初始文案）、`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮 + 键盘翻章）、`useDateSelection`（日期状态 + `?date=` 深链 + 地址栏同步 + 夹回 1900–2100）、`useInitialHash`（挂载时滚到 `#hash` 章节）、`usePiSource` / `useScanPool`（探测数据源、建 Worker 池）、`useAnswersForDate`（这一天的表：`table` / `waiting` / `missing`）、`useSearchSession`（启动扫描 + 本地缓存）、`useDigitsStrip`（数字带，远位走 api.pi.delivery）、`useSelfCheck`（第 762 位起 6 位）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` / `accumulateWheel` / `pagingIntentForKey` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮与页面键、维持 700ms 锁定窗口。地址栏与日期同步用 `src/lib/position.ts` 的 `withDateParam`（纯函数、有单测）。
 - `src/App.tsx`：自身只做**组合** —— 日期、数据源、答案表、扫描会话、数字带、自检各一个 hook，页面视图由 `src/lib/answers.ts` 的纯函数 `composeView`（有单测）把「实时扫描快照 + 这一天的答案表」合成，降级提示抽在 `src/components/DataSourceNotice.tsx`。
 - CSS：JS 挂载后给 `<html>` 加 `.js-motion`，之后 `.reveal` 才有 `opacity: 0` / `translateY(20px)` 初值，进入视口加 `.is-in` 过渡到终态（0.7s）。**没有 JS 时内容默认可见**。只动 `transform` / `opacity` / `scale`。
 
@@ -122,7 +123,7 @@ pnpm dev   # 另开一个终端
 curl "http://127.0.0.1:5273/api/digits?from=1&count=10"         # 1415926535
 curl "http://127.0.0.1:5273/api/digits?from=762&count=6"        # 999999
 curl "http://127.0.0.1:5273/api/digits?from=999999998&count=3"  # 519（数据源到小数点后第 10 亿位为止；count 超出末尾会自动截断）
-pnpm test        # 109 个用例
+pnpm test        # 153 个用例
 pnpm typecheck
 pnpm build
 pnpm build:pages # 子路径构建（GitHub Pages 部署用的就是它）
@@ -139,7 +140,7 @@ pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-s
 pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-size "1200,630" --wait-for-timeout 4500 http://127.0.0.1:5273/ public/og-cover.png
 ```
 
-手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`PageDown` / `PageUp` / `Home` / `End` 走同一套吸附、换一天后地址栏出现 `?date=` 且浏览器后退能回到上一天、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态数据源下 `#engine` / `#trust` 的文案分支、762 位自检徽章、静态站上 `#digits` 的远位数字带（`?date=2026-10-15` → 第 521,625,248 位，数字带应显示 88 位并注明取自 api.pi.delivery）；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
+手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`PageDown` / `PageUp` / `Home` / `End` 走同一套吸附、换一天后地址栏出现 `?date=` 且浏览器后退能回到上一天、`#pick` 的「复制链接」点一下剪贴板里拿到当前这一天的链接（今天不带参数）、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态数据源下 `#engine` / `#trust` 的文案分支、762 位自检徽章、静态站上 `#digits` 的远位数字带（`?date=2026-10-15` → 第 521,625,248 位，数字带应显示 88 位并注明取自 api.pi.delivery）；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
 
 ## 界面实拍
 

@@ -14,11 +14,12 @@ import { useDateSelection } from './hooks/useDateSelection';
 import { useDigitsStrip } from './hooks/useDigitsStrip';
 import { useInitialHash } from './hooks/useInitialHash';
 import { usePiSource, useScanPool } from './hooks/usePiSource';
+import { useCopyLink } from './hooks/useCopyLink';
 import { useSearchSession } from './hooks/useSearchSession';
 import { useSectionPaging } from './hooks/useSectionPaging';
 import { useSelfCheck } from './hooks/useSelfCheck';
 import { ANSWER_RANGE, composeView } from './lib/answers';
-import { parseDateKey } from './lib/position';
+import { parseDateKey, withDateParam } from './lib/position';
 import { pickDisplayNeedle } from './lib/present';
 
 const PRESET_TARGETS = [100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000];
@@ -49,12 +50,15 @@ const SECTION_IDS = NAV_ITEMS.map((item) => item.id);
  *   lib/answers composeView  表答案并进扫描快照
  */
 export default function App() {
-  const { now, activeKey, isToday, date, encodings, needles, needleKey, primaryDigits, select, step, random } =
+  const { now, todayKey, activeKey, isToday, date, encodings, needles, needleKey, primaryDigits, select, step, random } =
     useDateSelection();
   useInitialHash();
   const activeSection = useActiveSection(SECTION_IDS);
   // 整页滚动吸附：滚轮落在章节边界时一次翻一整段（长章节先原生滚到底）
   useSectionPaging(SECTION_IDS);
+
+  // #pick 里的「复制链接」：复制的是与地址栏同一套规则的分享链接（今天不带 ?date=）
+  const share = useCopyLink(() => withDateParam(window.location.href, activeKey, todayKey));
 
   const source = usePiSource();
   const { poolRef, workers } = useScanPool();
@@ -170,6 +174,8 @@ export default function App() {
           onStep={step}
           onToday={() => select(null)}
           onRandom={random}
+          copyState={share.state}
+          onCopyLink={share.copy}
           encodings={encodings}
           snapshot={view}
           cache={cache}
