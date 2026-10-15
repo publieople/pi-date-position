@@ -1,6 +1,6 @@
 # π 里的今天 · 你的日期藏在圆周率的第几位
 
-把任意一天写成 6 种常见数字写法，看看它在 **π 的小数点后第几位**第一次出现。整页滚动的产品展示站：首屏只有一个巨型答案数字，向下滚动逐章展开证据、方法与口径。默认跟随系统当天（秒级时钟，跨零点自动重跑）。
+把任意一天写成 6 种常见数字写法，看看它在 **π 的小数点后第几位**第一次出现。整页滚动的产品展示站：首屏只有一个巨型答案数字，向下滚动逐章展开证据、方法与口径。滚动带吸附 —— 滚轮落在章节边界时一次翻一整段，比一屏高的章节先原生滚到底再翻页。默认跟随系统当天（秒级时钟，跨零点自动重跑）。
 
 ## 在线演示
 
@@ -32,6 +32,7 @@ pnpm dev        # http://127.0.0.1:5273
 - 深链：`http://127.0.0.1:5273/#forms` 之类直接定位到章节（挂载时瞬时定位，供截图与分享）。
 - 指定日期：`http://127.0.0.1:5273/?date=2028-02-29`（非法值忽略，回落到今天）。
 - 首屏默认只搜到 **1000 万位**。这个深度通常已经能锁定 `MMDD` / `DDMM` / `YYMMDD`，所以首屏给出的是这一天里最早确认的位次（例如今天 `MMDD 1015` → 第 2,563 位）；8 位完整写法若还没出现，首屏会写明「`YYYYMMDD` 这个 8 位完整写法还没锁定」并指向 `#engine` 的 1 亿 / 10 亿深搜。
+- **滚动吸附**：`html { scroll-snap-type: y proximity }` 给每章 `scroll-snap-align: start`，再由 `useSectionPaging` 接管滚轮：落在章节边界时一次翻一整段（700ms 锁定窗口防连翻），比一屏高的章节先原生滚到底再翻页，一屏装得下的章节上下都直接翻页。用 `proximity` 而不是 `mandatory`，避免读长章节时被弹回段首；触屏、键盘、拖动滚动条与 `prefers-reduced-motion: reduce` 都不吸附。
 - **动效可关**：遵守 `prefers-reduced-motion: reduce` —— 所有入场、计数、点亮、数字流与视差一次性归零，内容直接呈现终态。
 
 ## 六种写法
@@ -72,7 +73,7 @@ pnpm dev        # http://127.0.0.1:5273
 ## 动效实现（不引入任何动画库）
 
 - `src/lib/motion.ts`：`clamp01` / `easeOutCubic` / `stagger` / `revealDelay` / `countUpValue` / `scrollThroughProgress` 等纯函数（有单测）。
-- `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`。
+- `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮翻章）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮、维持 700ms 锁定窗口。
 - CSS：JS 挂载后给 `<html>` 加 `.js-motion`，之后 `.reveal` 才有 `opacity: 0` / `translateY(20px)` 初值，进入视口加 `.is-in` 过渡到终态（0.7s）。**没有 JS 时内容默认可见**。只动 `transform` / `opacity` / `scale`。
 
 ## 脚本
@@ -111,7 +112,7 @@ pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-s
 # 章节： #forms / #digits / #engine / #pick / #trust 各来一张
 ```
 
-手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态降级提示、762 位自检徽章；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
+手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态降级提示、762 位自检徽章；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
 
 ## 界面实拍
 

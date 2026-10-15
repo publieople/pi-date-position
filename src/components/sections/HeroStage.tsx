@@ -91,13 +91,7 @@ export function HeroStage({
           <a className="stage-cta" href="#engine">
             {primaryDigits} 这个 8 位完整写法还没锁定 —— 到「怎么找的」里深搜到 1 亿 / 10 亿位 →
           </a>
-        ) : source?.kind === 'static' ? (
-          <p className="stage-cta stage-cta-plain">
-            在线演示版只带前 {formatCompact(source.maxDigits)} 位静态数据；想看小数点后 10 亿位，把仓库 clone 到本机跑{' '}
-            <code>pnpm dev</code>。
-          </p>
         ) : null}
-        <p className="stage-source">数据源：{source ? source.label : '正在探测数据源…'}</p>
         <a className="stage-scroll" href="#forms">
           向下滚动
           <span className="stage-arrow" aria-hidden="true">

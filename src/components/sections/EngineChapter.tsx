@@ -24,7 +24,7 @@ export function EngineChapter({ deepTargets, source, ...consoleProps }: EngineCh
     <Section
       id="engine"
       eyebrow="怎么找的"
-      title={isServer ? '从上游搬到本地，再一块块扫' : '一块块扫，不猜也不跳过'}
+      title={isServer ? '从上游搬到本地，再一块块扫' : '一块块扫'}
       lead={
         isServer
           ? '页面本身不做计算：本机服务把 MIT 的 π 文件按块搬到磁盘，浏览器把每一块交给 Worker 扫，扫到就停。'

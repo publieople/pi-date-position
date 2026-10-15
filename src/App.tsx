@@ -9,6 +9,7 @@ import { TrustChapter } from './components/sections/TrustChapter';
 import { SiteFooter } from './components/sections/SiteFooter';
 import { useNow } from './hooks/useNow';
 import { useActiveSection } from './hooks/useActiveSection';
+import { useSectionPaging } from './hooks/useSectionPaging';
 import { encodingsFor, searchNeedles } from './lib/encodings';
 import { findOccurrencesInText } from './lib/searchCore';
 import { PiSearchRun, type ScanSnapshot, type Scanner } from './lib/searchEngine';
@@ -87,6 +88,8 @@ export default function App() {
   const persistedRef = useRef<Set<string>>(new Set());
 
   const activeSection = useActiveSection(SECTION_IDS);
+  // 整页滚动吸附：滚轮落在章节边界时一次翻一整段（长章节先原生滚到底）
+  useSectionPaging(SECTION_IDS);
 
   // 0) 深链：#forms / #digits … 直接定位到章节（截图与分享用），不等入场动画
   useEffect(() => {

@@ -36,6 +36,14 @@ body {
   overflow-x: hidden;
 }
 
+/* 整页滚动吸附：靠近章节边界时吸到章节开头。
+   章节里有比一屏高的（表单 6 张卡、引擎控制台），所以用 proximity 而不是 mandatory ——
+   mandatory 会把正在读长章节的人弹回章节开头。 */
+html {
+  scroll-snap-type: y proximity;
+  scroll-padding-top: 24px;
+}
+
 body {
   background:
     radial-gradient(1200px 620px at 15% -10%, #12233d, rgba(7, 11, 18, 0) 55%),
@@ -175,8 +183,12 @@ button:disabled {
 
 .chapter {
   position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
   padding-block: var(--gap-chapter);
   scroll-margin-top: 24px;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
 }
 
 .chapter-head {
@@ -316,6 +328,7 @@ button:disabled {
   position: relative;
   min-height: 100vh;
   min-height: 100svh;
+  scroll-snap-align: start;
   display: grid;
   place-items: center;
   text-align: center;
@@ -445,25 +458,6 @@ button:disabled {
   color: #a8f6e2;
 }
 
-/* 静态托管（GitHub Pages）下的说明句：没有可点的链接，所以不沿用链接的强调色 */
-p.stage-cta-plain {
-  margin: 0;
-  max-width: 580px;
-  color: var(--dim);
-  line-height: 1.6;
-}
-
-p.stage-cta-plain code {
-  color: var(--accent-2);
-}
-
-.stage-source {
-  margin: 0;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: #6f82a0;
-}
-
 .stage-scroll {
   margin-top: 22px;
   display: inline-flex;
@@ -525,8 +519,7 @@ p.stage-cta-plain code {
   animation: stage-in 0.7s ease 0.12s both;
 }
 
-.js-motion .stage-note,
-.js-motion .stage-source {
+.js-motion .stage-note {
   animation: stage-in 0.7s ease 0.22s both;
 }
 
@@ -1271,6 +1264,7 @@ input[type='date'] {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+    scroll-snap-type: none;
   }
   .js-motion .reveal,
   .js-motion .card-slot {
@@ -1285,7 +1279,6 @@ input[type='date'] {
   .js-motion .stage-caption,
   .js-motion .stage-note,
   .js-motion .stage-cta,
-  .js-motion .stage-source,
   .js-motion .stage-scroll,
   .stage-arrow,
   .js-motion .engine-facts.is-in .block,
