@@ -81,6 +81,23 @@ export function EncodingCard({
         {found !== null ? <span className="card-pos">{describePosition(found)}</span> : null}
         {found !== null && !confirmed ? <span className="chip chip-warn">暂定</span> : null}
       </div>
+      {cached ? (
+        <div className="card-cache">
+          {fromTable
+            ? '上次实时扫描记到：第 ' +
+              formatThousands(cached.position) +
+              ' 位（当时扫到 ' +
+              formatThousands(cached.scannedThrough) +
+              ' 位' +
+              (cached.position === found ? '，与离线答案表一致' : '，与离线答案表不一致（以离线答案表为准）') +
+              '）'
+            : '上次记录：第 ' +
+              formatThousands(cached.position) +
+              ' 位（已验证到 ' +
+              formatThousands(cached.scannedThrough) +
+              ' 位）'}
+        </div>
+      ) : null}
       <dl className="card-meta">
         {fromTable ? (
           <>
@@ -106,23 +123,6 @@ export function EncodingCard({
           </>
         )}
       </dl>
-      {cached ? (
-        <div className="card-cache">
-          {fromTable
-            ? '上次实时扫描记到：第 ' +
-              formatThousands(cached.position) +
-              ' 位（当时扫到 ' +
-              formatThousands(cached.scannedThrough) +
-              ' 位' +
-              (cached.position === found ? '，与离线答案表一致' : '，与离线答案表不一致（以离线答案表为准）') +
-              '）'
-            : '上次记录：第 ' +
-              formatThousands(cached.position) +
-              ' 位（已验证到 ' +
-              formatThousands(cached.scannedThrough) +
-              ' 位）'}
-        </div>
-      ) : null}
       {onToggle ? (
         <button type="button" className="link-btn" onClick={onToggle}>
           {active ? '取消深搜这一写法' : '加入深搜'}

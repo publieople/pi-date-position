@@ -42,7 +42,11 @@ export function DigitsChapter({
           <p className="digits-note">
             当前展示：<code>{writing.label}</code> <code>{writing.digits}</code>
             {writing.tentative ? '（暂定位置）' : ''}
-            {status === 'ready' ? ' —— 它是这一天在已扫描范围内最早确认命中的写法。' : ' —— 正在取回它周围的数字。'}
+            {status === 'ready'
+              ? writing.tentative
+                ? ' —— 位置还没确认，先看这一段数字。'
+                : ' —— 它是这一天六种写法里已确认位次最靠前的那一种。'
+              : ' —— 正在取回它周围的数字。'}
           </p>
         ) : null}
         <DigitsStrip

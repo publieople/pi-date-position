@@ -674,6 +674,9 @@ button:disabled {
 }
 
 .card-pos {
+  /* 位次独占一行：六张卡片的「状态 / 位次」节奏一致，长位次也不会把状态行挤散 */
+  flex-basis: 100%;
+  padding-left: 16px;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
