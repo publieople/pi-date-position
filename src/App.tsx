@@ -87,6 +87,10 @@ export default function App() {
   const [workers, setWorkers] = useState(1);
   // 离线预计算答案表：静态站也能给出十亿位深度的位次；取不到就只靠实时扫描
   const [answers, setAnswers] = useState<DateAnswers | null>(null);
+  // 当前这份 answers 属于哪一天（YYYY-MM-DD）；取表成功或失败都写上，换日期时先清空。
+  // 首屏靠它避免「先报另一种写法的暂定位次、表一到又整个换掉」的跳变，
+  // 也避免换日期的那一帧把上一天的表答案并进这一天的 needles。
+  const [answersDate, setAnswersDate] = useState<string | null>(null);
 
   const poolRef = useRef<ScanPool | null>(null);
   const runRef = useRef<PiSearchRun | null>(null);
@@ -134,18 +138,26 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     setAnswers(null);
+    setAnswersDate(null);
     lookupAnswers(date.getFullYear(), date.getMonth() + 1, date.getDate()).then(
       (value) => {
-        if (alive) setAnswers(value);
+        if (alive) {
+          setAnswers(value);
+          setAnswersDate(activeKey);
+        }
       },
       () => {
-        if (alive) setAnswers(null);
+        // 表没生成 / 格式不认识 / 网络失败：这一轮就当没有表，首屏回到实时扫描的答案
+        if (alive) {
+          setAnswers(null);
+          setAnswersDate(activeKey);
+        }
       },
     );
     return () => {
       alive = false;
     };
-  }, [date]);
+  }, [date, activeKey]);
 
   // 2) Worker 池
   useEffect(() => {
@@ -216,15 +228,20 @@ export default function App() {
     };
   }, [source, needleKey, targetDigits, runToken, activeKey, needles]);
 
+  // 只认「属于当前这一天」的表答案：换日期的那一帧 answers 还停在上一天，不能拿来合并
+  const tableForDate = answers && answersDate === activeKey ? answers : null;
+  // 表这一轮有没有结果（成功或失败都算有）：没有就说明还在路上
+  const tableWaiting = answersDate !== activeKey;
+
   // 表答案 + 实时扫描：needle 结论以表为准（origin: 'table'），进度字段保持实时扫描的语义
   const view = useMemo<ScanSnapshot | null>(() => {
-    if (!answers) return snapshot;
+    if (!tableForDate) return snapshot;
     const base: ScanSnapshot = snapshot ?? {
       phase: 'searching',
       scannedDigits: 0,
       checkedDigits: 0,
       targetDigits,
-      availableDigits: Math.max(answers.depth, targetDigits),
+      availableDigits: Math.max(tableForDate.depth, targetDigits),
       bytesFetched: 0,
       chunksDone: 0,
       elapsedMs: 0,
@@ -232,8 +249,8 @@ export default function App() {
       gaps: [],
       needles: [],
     };
-    return { ...base, needles: mergeAnswers(base.needles, answers) };
-  }, [snapshot, answers, targetDigits]);
+    return { ...base, needles: mergeAnswers(base.needles, tableForDate) };
+  }, [snapshot, tableForDate, targetDigits]);
 
   const primaryState = view?.needles.find((needle) => needle.digits === primaryDigits);
 
@@ -250,6 +267,10 @@ export default function App() {
         : null,
     [view, encodings, primaryDigits],
   );
+
+  // 首屏的位次：表这一轮有结论（或确认取不到、只能靠实时扫描）时才拿出来。
+  // 表还在路上时首屏不报「别的写法」的暂定答案 —— 那个答案几帧后就会被表整条替换掉。
+  const heroAnswer = tableWaiting ? null : displayNeedle;
 
   const displayDigits = displayNeedle ? displayNeedle.digits : null;
   const displayPosition = displayNeedle ? displayNeedle.position : null;
@@ -429,7 +450,7 @@ export default function App() {
         primaryState={primaryState}
         snapshot={view}
         source={source}
-        answer={displayNeedle}
+        answer={heroAnswer}
       />
 
       <main className="flow">
