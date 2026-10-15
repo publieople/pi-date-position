@@ -183,6 +183,9 @@ export default function App() {
 
   const maxTarget = source?.maxDigits ?? 1_000_000;
   const targetDigits = Math.min(targetOverride ?? maxTarget, maxTarget);
+  // 首屏脚注要承诺「实时扫描能复验到多深」：用的是这一轮扫描的目标深度，而不是数据源容量 ——
+  // 本机服务虽然够到 10 亿位，默认这一轮只扫到 1000 万位，深处的位次不能吹成「会自己再验证一遍」
+  const scanReach = source && source.kind !== 'unavailable' ? targetDigits : 0;
   const presets = useMemo(() => PRESET_TARGETS.filter((value) => value <= maxTarget), [maxTarget]);
 
   // 4) 搜索引擎：日期 / 上限 / 手动重跑变化时重启
@@ -450,6 +453,7 @@ export default function App() {
         primaryState={primaryState}
         snapshot={view}
         source={source}
+        scanReach={scanReach}
         answer={heroAnswer}
       />
 

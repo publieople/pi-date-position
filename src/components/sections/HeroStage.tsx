@@ -15,6 +15,8 @@ export interface HeroStageProps {
   primaryState: NeedleState | undefined;
   snapshot: ScanSnapshot | null;
   source: DigitSource | null;
+  /** 本次实时扫描这一轮会覆盖到多深（目标深度）；0 = 数据源不可用 */
+  scanReach: number;
   /** 这一天里最早确认命中的写法；null = 还没有任何确认，改用实时扫描计数 */
   answer: (StripWriting & { position: number; origin?: 'scan' | 'table'; knownThrough?: number }) | null;
 }
@@ -28,6 +30,7 @@ export function HeroStage({
   primaryState,
   snapshot,
   source,
+  scanReach,
   answer,
 }: HeroStageProps) {
   // 首屏优先回答「这一天在 π 里最早被确认的位次」；一个都没确认时才退回实时扫描计数。
@@ -64,11 +67,9 @@ export function HeroStage({
   const noteText =
     answer && snapshot && answer.digits === primaryDigits
       ? fromTable
-        ? tableNote(
-            answer.knownThrough ?? 0,
-            source && source.kind !== 'unavailable' ? source.maxDigits : 0,
-            answer.position,
-          )
+        // 第三个参数是「这一轮实时扫描真正会覆盖到多深」，不是数据源的容量：
+        // 本机服务够到 10 亿位，但默认只扫到 1000 万位，深处的位次不能吹成「会自己再验证一遍」
+        ? tableNote(answer.knownThrough ?? 0, scanReach, answer.position)
         : '扫到 ' + formatCompact(snapshot.scannedDigits) + ' 位就命中，命中即停'
       : '';
 
