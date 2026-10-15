@@ -53,7 +53,7 @@ pnpm dev        # http://127.0.0.1:5273
 1. **本机服务（首选）**：`/api/meta` + `/api/digits`，由 `server/pi-service.mjs` 提供，dev / preview / `pnpm serve` 三者共用同一份中间件。
    - 上游：<https://stuff.mit.edu/afs/sipb/contrib/pi/pi-billion.txt>（10 亿位小数，ASCII 无换行，支持 Range 请求）。
    - 按 4,000,000 字节一块切成 251 块，先写临时文件再 `rename`，所以缓存文件永远是完整的；同一块的并发请求只下载一次。
-2. **静态版（GitHub Pages）**：位次读站点自带的**离线答案表**（`public/answers/`，深度 10 亿位，见下一节）；实时扫描与数字带读 `public/pi-1m.txt`（`pnpm fetch-fallback` 生成，前 100 万位）；命中位次超过 100 万位时，数字带改用公开接口 <https://api.pi.delivery> 取回命中点附近的一小段（`src/lib/digitSource.ts` 的 `remoteWindowRange` + `createRemoteWindow`，单次上限 1000 位，页面会注明这一段来自哪里）。没有本机服务时页面走这条路，所以「实时扫描只到前 100 万位」这件事写在 `#engine` 与 `#trust` 两章里（首屏不插提示条），8 位写法在实时水位内找不到时不下结论。
+2. **静态版（GitHub Pages）**：位次读站点自带的**离线答案表**（`public/answers/`，深度 10 亿位，见下一节）；实时扫描与数字带读 `public/pi-1m.txt`（`pnpm fetch-fallback` 生成，前 100 万位）；命中位次超过 100 万位时，数字带改用公开接口 <https://api.pi.delivery> 取回命中点附近的一小段（`src/lib/digitSource.ts` 的 `remoteWindowRange` + `createRemoteWindow`，单次上限 1000 位，页面会注明这一段来自哪里）。没有本机服务时页面走这条路，所以「实时扫描只到前 100 万位」这件事写在 `#engine` 与 `#trust` 两章里（首屏不插提示条），8 位写法在实时水位内找不到时不下结论；答案表取不到（网络或格式问题）时页面顶部会明确提示「这一轮位次只来自实时扫描」，不会悄悄把结论深度降下来（数据源与答案表同时不可用时，提示会写明这一轮连预计算的位次都没有）。
 3. 浏览器**不能**直连 MIT：该服务器没有返回 `Access-Control-Allow-Origin`，跨域会被挡，所以必须经本机服务。
 
 ## 离线预计算答案表

@@ -235,6 +235,8 @@ export default function App() {
   const tableForDate = answers && answersDate === activeKey ? answers : null;
   // 表这一轮有没有结果（成功或失败都算有）：没有就说明还在路上
   const tableWaiting = answersDate !== activeKey;
+  // 已经属于这一天、却没有表：说明这一轮取表失败（网络或格式问题），页面要如实说一声
+  const answersMissing = answersDate === activeKey && answers === null;
 
   // 表答案 + 实时扫描：needle 结论以表为准（origin: 'table'），进度字段保持实时扫描的语义
   const view = useMemo<ScanSnapshot | null>(() => {
@@ -461,7 +463,17 @@ export default function App() {
         {source?.kind === 'unavailable' ? (
           <p className="notice notice-bad">
             没有可用的 π 数据源：本机服务未启动，且站点自带的 <code>public/pi-1m.txt</code> 读取失败（可执行{' '}
-            <code>pnpm fetch-fallback</code> 重新生成）。位次结论仍来自离线预计算表，但实时扫描与数字带暂时不可用。
+            <code>pnpm fetch-fallback</code> 重新生成）。
+            {answersMissing
+              ? '离线答案表也没取到，这一轮连预计算的位次都没有。'
+              : '位次结论仍来自离线预计算表，但实时扫描与数字带暂时不可用。'}
+          </p>
+        ) : answersMissing ? (
+          <p className="notice">
+            离线答案表没取到（网络或格式问题），这一轮位次只来自实时扫描
+            {source?.kind === 'server'
+              ? ' —— 本机服务能一路扫到 10 亿位，可以在「怎么找的」里把目标调大；刷新一次也会重新取表。'
+              : ' —— 在线演示版只有站点自带的前 100 万位，更深的写法这一轮给不出结论；刷新一次会重新取表。'}
           </p>
         ) : null}
 
