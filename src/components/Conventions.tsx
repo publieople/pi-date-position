@@ -48,6 +48,7 @@ export function Conventions({ selfCheck, sourceKind }: ConventionsProps) {
               <>
                 在线演示版的位次读站点自带的离线答案表（1900–2100 每一天，深度 10 亿位，<code>public/answers/</code>）；
                 另有一份前 1,000,000 位副本（<code>public/pi-1m.txt</code>）供实时验证与数字带使用。
+                命中位次超过 100 万位时，数字带改用公开接口 <code>api.pi.delivery</code> 取回命中点附近的一小段（单次上限 1000 位）。
               </>
             )}
           </li>
@@ -63,7 +64,7 @@ export function Conventions({ selfCheck, sourceKind }: ConventionsProps) {
             {sourceKind === 'server' ? (
               <> 所以页面上的每一次取数都经过本机服务（<code>/api/digits</code>）。</>
             ) : (
-              <> 在线演示版读的是同源的离线答案表与前 100 万位副本；要现场扫到 10 亿位就在本机跑 <code>pnpm dev</code>，由本机服务代取。</>
+              <> 在线演示版读的是同源的离线答案表与前 100 万位副本，命中点附近的数字则按需向 <code>api.pi.delivery</code> 取一小段；要现场扫到 10 亿位就在本机跑 <code>pnpm dev</code>，由本机服务代取。</>
             )}
           </li>
         </ul>

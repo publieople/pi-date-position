@@ -10,6 +10,8 @@ export interface DigitSource {
   /** 给人看的来源说明 */
   label: string;
   fetchRange(from: number, count: number, signal?: AbortSignal): Promise<string>;
+  /** 超出本地范围时的在线取数能力（目前只有静态来源有） */
+  remote?: RemoteWindow;
 }
 
 const DIGITS_ONLY = /[^0-9]/g;
@@ -31,6 +33,59 @@ async function fetchText(url: string, signal?: AbortSignal): Promise<string> {
   const response = await fetch(url, { signal });
   if (!response.ok) throw new HttpError(response.status, url + ' → HTTP ' + response.status);
   return await response.text();
+}
+
+/** 上游之外的第三个数据源：api.pi.delivery（带 CORS `*`，单次最多 1000 位）。
+ *  只在命中位次超出本地数据源时，用来取回命中点附近的一小段真实数字。 */
+export const REMOTE_API = 'https://api.pi.delivery/v1/pi';
+export const REMOTE_MAX_PER_REQUEST = 1000;
+export const REMOTE_MAX_DIGITS = 1_000_000_000;
+
+export interface RemoteWindow {
+  label: string;
+  /** 单次请求能取回的最多位数 */
+  maxPerRequest: number;
+  /** 能覆盖的最深位数 */
+  maxDigits: number;
+  fetchDigits(from: number, count: number, signal?: AbortSignal): Promise<string>;
+}
+
+/**
+ * 命中点附近的取数窗口：前面留 `before` 位，单次上限截断；
+ * 超出可取深度、或位次不合法时返回 null。
+ */
+export function remoteWindowRange(
+  position: number,
+  needleLength: number,
+  before = 40,
+  maxPerRequest = REMOTE_MAX_PER_REQUEST,
+  maxDigits = REMOTE_MAX_DIGITS,
+): { from: number; count: number } | null {
+  if (!Number.isFinite(position) || position < 1 || position > maxDigits) return null;
+  const from = Math.max(1, position - before);
+  const count = Math.min(before * 2 + needleLength, maxPerRequest, maxDigits - from + 1);
+  if (count <= 0 || from + count - 1 < position + needleLength - 1) return null;
+  return { from, count };
+}
+
+/** 包一层 `fetch`，方便注入替身做单测；返回的内容必须是纯数字且位数吻合。 */
+export function createRemoteWindow(fetchImpl: typeof fetch = fetch, apiBase = REMOTE_API): RemoteWindow {
+  return {
+    label: 'api.pi.delivery',
+    maxPerRequest: REMOTE_MAX_PER_REQUEST,
+    maxDigits: REMOTE_MAX_DIGITS,
+    async fetchDigits(from, count, signal) {
+      const url = apiBase + '?start=' + from + '&numberOfDigits=' + count;
+      const response = await fetchImpl(url, { signal });
+      if (!response.ok) throw new HttpError(response.status, url + ' → HTTP ' + response.status);
+      const payload = (await response.json()) as { content?: unknown };
+      const digits = String(payload?.content ?? '').replace(DIGITS_ONLY, '');
+      if (digits.length !== count) {
+        throw new Error('api.pi.delivery 返回 ' + digits.length + ' 位，期望 ' + count + ' 位');
+      }
+      return digits;
+    },
+  };
 }
 
 interface MetaPayload {
@@ -83,6 +138,8 @@ export async function probeSource(options: { timeoutMs?: number } = {}): Promise
       kind: 'static',
       maxDigits: text.length,
       label: '站点内置静态 π 文件（前 ' + text.length.toLocaleString('en-US') + ' 位）',
+      // 超出内置副本的位次：用带 CORS 的公开接口取回命中点附近的一小段
+      remote: createRemoteWindow(),
       async fetchRange(from, count) {
         const start = Math.max(1, from);
         const available = Math.max(0, Math.min(count, text.length - start + 1));

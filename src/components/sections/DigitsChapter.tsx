@@ -21,6 +21,7 @@ export function DigitsChapter({
   position,
   status,
   message,
+  note,
   writing,
 }: DigitsChapterProps) {
   return (
@@ -51,6 +52,7 @@ export function DigitsChapter({
           position={position}
           status={status}
           message={message}
+          note={note}
           animate
         />
       </Reveal>

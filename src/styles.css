@@ -900,6 +900,14 @@ button:disabled {
   color: var(--dim);
 }
 
+.strip-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--dim);
+  opacity: 0.85;
+}
+
 .strip-msg {
   margin: 0;
   font-size: 14px;

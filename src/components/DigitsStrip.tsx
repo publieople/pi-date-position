@@ -12,6 +12,8 @@ export interface DigitsStripProps {
   position: number | null;
   status: 'idle' | 'loading' | 'ready' | 'error';
   message?: string;
+  /** 数据来源说明（例如某段数字取自哪个上游） */
+  note?: string;
   /** #digits 章节专用：整条自左滑入 + 命中片段逐位点亮（每位 30ms） */
   animate?: boolean;
 }
@@ -23,6 +25,7 @@ export function DigitsStrip({
   position,
   status,
   message,
+  note,
   animate = false,
 }: DigitsStripProps) {
   if (status === 'idle') {
@@ -80,6 +83,7 @@ export function DigitsStrip({
           高亮的就是 <code>{needle}</code>，起点在小数点后第 {position.toLocaleString('en-US')} 位。
         </p>
       ) : null}
+      {note ? <p className="strip-note">{note}</p> : null}
     </section>
   );
 }

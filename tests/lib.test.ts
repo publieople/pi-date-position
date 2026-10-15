@@ -4,6 +4,7 @@ import { CHUNK_LADDER, chunkSizeAt, planChunk } from '../src/lib/searchEngine';
 import { encodingsFor, searchNeedles } from '../src/lib/encodings';
 import { byteOffsetOfPosition, formatThousands, parseDateKey, toDateKey } from '../src/lib/position';
 import { tableNote } from '../src/lib/headline';
+import { createRemoteWindow, remoteWindowRange, REMOTE_MAX_PER_REQUEST } from '../src/lib/digitSource';
 
 const dateOf = (key: string): Date => {
   const date = parseDateKey(key);
@@ -110,6 +111,48 @@ describe('首屏脚注（表答案）', () => {
     expect(tableNote(1_000_000_000, 0, 521_625_248)).toBe(
       '位次来自离线预计算表（前 10 亿位）；本次实时扫描不可用，没法在浏览器里复验'
     );
+  });
+});
+
+describe('在线取数窗口（命中位次超出内置副本时）', () => {
+  it('命中点前留 40 位，取回一整段', () => {
+    expect(remoteWindowRange(521_625_248, 8)).toEqual({ from: 521_625_208, count: 88 });
+  });
+
+  it('位次很靠前时窗口从第 1 位起，仍然盖住整条数字串', () => {
+    const span = remoteWindowRange(12, 4);
+    expect(span).toEqual({ from: 1, count: 84 });
+    expect((span?.from ?? 0) + (span?.count ?? 0) - 1).toBeGreaterThanOrEqual(12 + 4 - 1);
+  });
+
+  it('超过可取深度、或位次不合法时返回 null', () => {
+    expect(remoteWindowRange(1_000_000_001, 8)).toBeNull();
+    expect(remoteWindowRange(0, 8)).toBeNull();
+    expect(remoteWindowRange(Number.NaN, 8)).toBeNull();
+  });
+
+  it('单次请求不超过上游上限 1000 位', () => {
+    expect(remoteWindowRange(500, 8)?.count ?? 0).toBeLessThanOrEqual(REMOTE_MAX_PER_REQUEST);
+  });
+
+  it('按 start / numberOfDigits 请求，返回纯数字', async () => {
+    const calls: string[] = [];
+    const remote = createRemoteWindow(
+      async (input) => {
+        calls.push(String(input));
+        return new Response(JSON.stringify({ content: '20261015' }), { status: 200 });
+      },
+      'https://example.test/pi',
+    );
+    await expect(remote.fetchDigits(521_625_208, 8)).resolves.toBe('20261015');
+    expect(calls[0]).toBe('https://example.test/pi?start=521625208&numberOfDigits=8');
+  });
+
+  it('位数不符或 HTTP 出错时抛错（页面退回「取不回来」的说明）', async () => {
+    const short = createRemoteWindow(async () => new Response(JSON.stringify({ content: '12' }), { status: 200 }));
+    await expect(short.fetchDigits(10, 8)).rejects.toThrow(/期望 8 位/);
+    const broken = createRemoteWindow(async () => new Response('nope', { status: 500 }));
+    await expect(broken.fetchDigits(10, 8)).rejects.toThrow(/HTTP 500/);
   });
 });
 

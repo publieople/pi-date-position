@@ -52,7 +52,7 @@ pnpm dev        # http://127.0.0.1:5273
 1. **本机服务（首选）**：`/api/meta` + `/api/digits`，由 `server/pi-service.mjs` 提供，dev / preview / `pnpm serve` 三者共用同一份中间件。
    - 上游：<https://stuff.mit.edu/afs/sipb/contrib/pi/pi-billion.txt>（10 亿位小数，ASCII 无换行，支持 Range 请求）。
    - 按 4,000,000 字节一块切成 251 块，先写临时文件再 `rename`，所以缓存文件永远是完整的；同一块的并发请求只下载一次。
-2. **静态版（GitHub Pages）**：位次读站点自带的**离线答案表**（`public/answers/`，深度 10 亿位，见下一节）；实时扫描与数字带读 `public/pi-1m.txt`（`pnpm fetch-fallback` 生成，前 100 万位）。没有本机服务时页面走这条路，所以「实时扫描只到前 100 万位」这件事写在 `#engine` 与 `#trust` 两章里（首屏不插提示条），8 位写法在实时水位内找不到时不下结论。
+2. **静态版（GitHub Pages）**：位次读站点自带的**离线答案表**（`public/answers/`，深度 10 亿位，见下一节）；实时扫描与数字带读 `public/pi-1m.txt`（`pnpm fetch-fallback` 生成，前 100 万位）；命中位次超过 100 万位时，数字带改用公开接口 <https://api.pi.delivery> 取回命中点附近的一小段（`src/lib/digitSource.ts` 的 `remoteWindowRange` + `createRemoteWindow`，单次上限 1000 位，页面会注明这一段来自哪里）。没有本机服务时页面走这条路，所以「实时扫描只到前 100 万位」这件事写在 `#engine` 与 `#trust` 两章里（首屏不插提示条），8 位写法在实时水位内找不到时不下结论。
 3. 浏览器**不能**直连 MIT：该服务器没有返回 `Access-Control-Allow-Origin`，跨域会被挡，所以必须经本机服务。
 
 ## 离线预计算答案表
@@ -135,7 +135,7 @@ pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-s
 pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-size "1200,630" --wait-for-timeout 4500 http://127.0.0.1:5273/ public/og-cover.png
 ```
 
-手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态数据源下 `#engine` / `#trust` 的文案分支、762 位自检徽章；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
+手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态数据源下 `#engine` / `#trust` 的文案分支、762 位自检徽章、静态站上 `#digits` 的远位数字带（`?date=2026-10-15` → 第 521,625,248 位，数字带应显示 88 位并注明取自 api.pi.delivery）；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
 
 ## 界面实拍
 
@@ -161,7 +161,7 @@ pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-s
 
 ## 已知边界
 
-- 位次来自离线表（深度 10 亿位），但**数字带**受数据源限制：静态站能取到前 100 万位，所以命中位置更靠后的写法，数字带会写明「它落在第 N 位，而当前数据源只到前 100 万位」。要看到实位的数字带，本机跑 `pnpm dev`。
+- 位次来自离线表（深度 10 亿位）；**数字带**在静态站上用两条来源拼出来：前 100 万位读站点自带的 `public/pi-1m.txt`，更靠后的命中就向 <https://api.pi.delivery> 取命中点前后各 40 位（单次 1000 位上限），数字带下方会写明这一段来自哪里。只有当这个公开接口也取不到时（离线、被墙、上游 5xx），数字带才会退回「附近的数字取不回来」。
 - 实时扫描的上限仍是数据源：静态站 100 万位，本机最多 10 亿位。首屏的实时扫描目标默认 1000 万位（可在 `#engine` 里选 1 亿 / 10 亿）；静态站上实时扫描只覆盖前 100 万位，结论以离线表为准。
 - 8 位写法在 10 亿位内的出现概率约 99.995%，偶尔真的不出现，页面会明确写「未在前 10 亿位出现」（而不是含糊地说「没找到」）。
 - 深搜到 10 亿位要拉约 1GB 数据，视网络需要几分钟；进度、耗时、字节数都在控制台里，随时可以停。

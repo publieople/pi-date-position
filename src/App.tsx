@@ -13,7 +13,7 @@ import { useSectionPaging } from './hooks/useSectionPaging';
 import { encodingsFor, searchNeedles } from './lib/encodings';
 import { findOccurrencesInText } from './lib/searchCore';
 import { PiSearchRun, type ScanSnapshot, type Scanner } from './lib/searchEngine';
-import { probeSource, type DigitSource } from './lib/digitSource';
+import { probeSource, remoteWindowRange, type DigitSource } from './lib/digitSource';
 import { createScanPool, type ScanPool } from './lib/workerScanner';
 import { clearCache, loadCache, saveCache, type CachedResult } from './lib/resultCache';
 import { formatCompact, formatThousands, pad2, parseDateKey, toDateKey } from './lib/position';
@@ -276,8 +276,56 @@ export default function App() {
     const length = displayDigits.length;
     const from = Math.max(1, displayPosition - before);
     const writing: StripWriting = { label: displayLabel, digits: displayDigits, tentative: displayTentative };
-    // 位次（表答案常常在几亿位）可能超出当前数据源能取到的范围：这时取不到附近的数字，直接说明
+    // 位次（表答案常常在几亿位）可能超出当前数据源能取到的范围：
+    // 有在线取数能力时（静态版 + api.pi.delivery）取回命中点附近的一小段，否则诚实说明取不到
     if (from > source.maxDigits) {
+      const remote = source.remote;
+      const span = remote
+        ? remoteWindowRange(displayPosition, length, before, remote.maxPerRequest, remote.maxDigits)
+        : null;
+      if (remote && span) {
+        let alive = true;
+        setStrip({ status: 'loading', from: null, digits: null, position: displayPosition, writing });
+        remote.fetchDigits(span.from, span.count).then(
+          (digits) => {
+            if (!alive) return;
+            setStrip({
+              status: 'ready',
+              from: span.from,
+              digits,
+              position: displayPosition,
+              writing,
+              note:
+                '这一段取自 ' +
+                remote.label +
+                '（本站内置副本只到前 ' +
+                formatCompact(source.maxDigits) +
+                '位）；位次结论仍以离线预计算表为准。',
+            });
+          },
+          (error: unknown) => {
+            if (!alive) return;
+            setStrip({
+              status: 'idle',
+              from: null,
+              digits: null,
+              position: displayPosition,
+              writing,
+              message:
+                '它落在小数点后第 ' +
+                formatThousands(displayPosition) +
+                ' 位，超出本站内置的前 ' +
+                formatCompact(source.maxDigits) +
+                ' 位，在线取数也没能取回附近的数字（' +
+                String((error as Error)?.message ?? error) +
+                '）。在本机跑 pnpm dev 可以直接从本地 π 数据里取。',
+            });
+          },
+        );
+        return () => {
+          alive = false;
+        };
+      }
       setStrip({
         status: 'idle',
         from: null,
