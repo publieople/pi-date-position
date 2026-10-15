@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAGE_SLACK, pageTarget, sectionIndexAt, normalizeSections, type PagingSection } from '../src/lib/paging';
+import { PAGE_SLACK, accumulateWheel, pageTarget, sectionIndexAt, normalizeSections, type PagingSection, type WheelGesture } from '../src/lib/paging';
 
 const VIEWPORT = 800;
 const MAX_SCROLL = 4000;
@@ -91,3 +91,56 @@ describe('退化输入', () => {
     expect(pageTarget(SECTIONS, VIEWPORT, 0, 0, 1)).toBeNull();
   });
 });
+describe('滚轮手势累积（触控板 1–3px 的小事件不会被丢掉）', () => {
+  it('鼠标滚轮一格的大 delta 一次就够', () => {
+    const first = accumulateWheel(null, 100, 0);
+    expect(first.triggered).toBe(true);
+    expect(first.gesture.total).toBe(0);
+  });
+
+  it('触控板的小 delta 累积到阈值才翻页（4+4+4 = 12）', () => {
+    let gesture: WheelGesture | null = null;
+    let fired = 0;
+    for (const now of [0, 16, 32]) {
+      const step = accumulateWheel(gesture, 4, now);
+      gesture = step.gesture;
+      if (step.triggered) fired += 1;
+    }
+    expect(fired).toBe(1);
+  });
+
+  it('超过时间窗就重新计数', () => {
+    const first = accumulateWheel(null, 8, 0);
+    expect(first.triggered).toBe(false);
+    const second = accumulateWheel(first.gesture, 8, 500);
+    expect(second.triggered).toBe(false);
+    expect(second.gesture.total).toBe(8);
+  });
+
+  it('细小事件连续到来时，即使手势超过一个窗口时长也继续累积', () => {
+    let gesture: WheelGesture | null = null;
+    let fired = 0;
+    // 每 40ms 一条 2px：跨度 200ms（远大于 90ms 窗口），但每条间隔都在窗口内
+    for (const now of [0, 40, 80, 120, 160, 200]) {
+      const step = accumulateWheel(gesture, 2, now);
+      gesture = step.gesture;
+      if (step.triggered) fired += 1;
+    }
+    expect(fired).toBe(1);
+  });
+
+  it('方向翻转重置累积', () => {
+    const up = accumulateWheel(null, -8, 0);
+    const down = accumulateWheel(up.gesture, 8, 16);
+    expect(down.triggered).toBe(false);
+    expect(down.gesture.direction).toBe(1);
+    expect(down.gesture.total).toBe(8);
+  });
+
+  it('触发后清零，同一手势不会连翻', () => {
+    const big = accumulateWheel(null, 40, 0);
+    expect(big.triggered).toBe(true);
+    expect(accumulateWheel(big.gesture, 5, 16).triggered).toBe(false);
+  });
+});
+

@@ -34,7 +34,7 @@ pnpm dev        # http://127.0.0.1:5273
 - 深链：`http://127.0.0.1:5273/#forms` 之类直接定位到章节（挂载时瞬时定位，供截图与分享）。
 - 指定日期：`http://127.0.0.1:5273/?date=2028-02-29`（非法值忽略，回落到今天）。
 - 首屏的位次来自**离线预计算表**（深度 10 亿位，覆盖 1900–2100 的每一天），打开即有结论；卡片上会写明「已确认（预计算表）」。同一时间浏览器还在跑实时扫描（首屏默认目标 **1000 万位**，可在 `#engine` 里选 1 亿 / 10 亿），用来独立验证表里的结论 —— 两者不一致时以实时扫描为准（表可能旧了）。表里没覆盖到的写法（比如带分隔符的写法）仍走实时扫描，8 位完整写法在实时水位内还没锁定时，卡片会写明「未扫完」。
-- **滚动吸附**：`html { scroll-snap-type: y proximity }` 给每章 `scroll-snap-align: start`，再由 `useSectionPaging` 接管滚轮：落在章节边界时一次翻一整段（700ms 锁定窗口防连翻），比一屏高的章节先原生滚到底再翻页，一屏装得下的章节上下都直接翻页。用 `proximity` 而不是 `mandatory`，避免读长章节时被弹回段首；触屏、键盘、拖动滚动条与 `prefers-reduced-motion: reduce` 都不吸附。
+- **滚动吸附**：`html { scroll-snap-type: y proximity }` 给每章 `scroll-snap-align: start`，再由 `useSectionPaging` 接管滚轮：落在章节边界时一次翻一整段（700ms 锁定窗口防连翻；触控板一次滑动会发几十条 1–3px 的事件，`src/lib/paging.ts` 的 `accumulateWheel` 把「距上一条事件 90ms 内」的 deltaY 一路累加、攒够 12px 才判定，单条 1–3px 的小事件不会被丢掉，也不会因为一次滑动拖得久就把进度清零），比一屏高的章节先原生滚到底再翻页，一屏装得下的章节上下都直接翻页。用 `proximity` 而不是 `mandatory`，避免读长章节时被弹回段首；触屏、键盘、拖动滚动条与 `prefers-reduced-motion: reduce` 都不吸附。
 - **动效可关**：遵守 `prefers-reduced-motion: reduce` —— 所有入场、计数、点亮、数字流与视差一次性归零，内容直接呈现终态。
 
 ## 六种写法
@@ -92,7 +92,7 @@ pnpm answers -- --depth 2000000000   # 想更深也可以（文件体积随之�
 ## 动效实现（不引入任何动画库）
 
 - `src/lib/motion.ts`：`clamp01` / `easeOutCubic` / `stagger` / `revealDelay` / `countUpValue` / `scrollThroughProgress` 等纯函数（有单测）。
-- `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮翻章）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮、维持 700ms 锁定窗口。
+- `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮翻章）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` / `accumulateWheel` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮、维持 700ms 锁定窗口。
 - CSS：JS 挂载后给 `<html>` 加 `.js-motion`，之后 `.reveal` 才有 `opacity: 0` / `translateY(20px)` 初值，进入视口加 `.is-in` 过渡到终态（0.7s）。**没有 JS 时内容默认可见**。只动 `transform` / `opacity` / `scale`。
 
 ## 脚本
@@ -132,6 +132,7 @@ pnpm answers:selftest
 ```bash
 pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-size "1440,900" --wait-for-timeout 4500 http://127.0.0.1:5273/ screenshots/showcase-hero.png
 # 章节： #forms / #digits / #engine / #pick / #trust 各来一张
+pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-size "1200,630" --wait-for-timeout 4500 http://127.0.0.1:5273/ public/og-cover.png
 ```
 
 手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态数据源下 `#engine` / `#trust` 的文案分支、762 位自检徽章；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
@@ -151,7 +152,7 @@ pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-s
 - **子路径**：项目站的地址形如 `/<repo>/`，所以部署构建必须带 base —— `pnpm build:pages` 就是 `vite build --base=/pi-date-position/`。本地 `pnpm build`（base `/`）配合 `pnpm serve` / `pnpm preview` 的行为不变。
 - **同源请求都带 base**：`src/lib/digitSource.ts` 里的 `BASE` 取自 `import.meta.env.BASE_URL`；线上探测 `/api/meta` 失败（GitHub Pages 会给 404 页面）后自动回退到 `/pi-date-position/pi-1m.txt`。
 - **Pages 设置**：Source = **GitHub Actions**（API 里的 `build_type: workflow`）。
-- **改名要同步两处**：`package.json` 的 `build:pages --base` 与 `README`/页面里的地址。
+- **改名要同步三处**：`package.json` 的 `build:pages --base`、`README`/页面里的地址，以及 `index.html` 里 `og:url` / `og:image` 的绝对地址（分享封面 `public/og-cover.png` 随站点一起发布，1200×630，用本页截图重生成即可）。
 - **手工重跑**：`gh workflow run pages.yml`；想在本机预览线上的子路径效果，`pnpm build:pages` 后把 `dist/` 放到名为 `pi-date-position/` 的目录里，再从上一层目录起静态服务。
 
 ## 磁盘

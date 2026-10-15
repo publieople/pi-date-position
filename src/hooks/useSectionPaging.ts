@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
-import { pageTarget, type PagingSection } from '../lib/paging';
+import { accumulateWheel, pageTarget, type PagingSection, type WheelGesture } from '../lib/paging';
 
 /** 一次翻页动画期间吞掉同一手势剩下的滚轮事件（毫秒）。 */
 const LOCK_MS = 700;
-/** 小于这个量级的 deltaY 当抖动丢掉。 */
-const MIN_DELTA = 4;
 
 /** 光标下还有能继续滚的容器时不要抢滚动（例如将来的代码块）。 */
 function scrollableAncestor(target: EventTarget | null, direction: 1 | -1): boolean {
@@ -45,16 +43,24 @@ export function useSectionPaging(ids: readonly string[], enabled = true) {
 
     const idList = key ? key.split(',') : [];
     let lockUntil = 0;
+    let gesture: WheelGesture | null = null;
 
     const onWheel = (event: WheelEvent) => {
-      if (event.defaultPrevented || event.ctrlKey || Math.abs(event.deltaY) < MIN_DELTA) return;
+      if (event.defaultPrevented || event.ctrlKey || event.deltaY === 0) return;
       const now = Date.now();
       if (now < lockUntil) {
+        // 翻页动画期间的惯性滚动属于同一手势：一并吞掉，累积也作废
         event.preventDefault();
+        gesture = null;
         return;
       }
       const direction: 1 | -1 = event.deltaY > 0 ? 1 : -1;
       if (scrollableAncestor(event.target, direction)) return;
+
+      // 触控板一次滑动会发几十条 1–3px 的事件，单条判断会漏；累积到阈值才算一次翻页
+      const accumulated = accumulateWheel(gesture, event.deltaY, now);
+      gesture = accumulated.gesture;
+      if (!accumulated.triggered) return;
 
       const viewportHeight = window.innerHeight;
       const maxScroll = Math.max(0, document.documentElement.scrollHeight - viewportHeight);
