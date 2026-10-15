@@ -81,7 +81,11 @@ export function HeroStage({
       };
 
   return (
-    <section id="hero" ref={ref} className={'stage tone-' + tone}>
+    <section id="hero" ref={ref} className={'stage tone-' + tone} aria-labelledby="hero-title">
+      {/* 全页唯一的 h1：视觉上由巨型数字承担标题，这里给读屏与地标一个可命名的页面标题 */}
+      <h1 id="hero-title" className="sr-only">
+        π 里的今天 —— 你的日期藏在圆周率的第几位
+      </h1>
       <div className="stage-glow" aria-hidden="true" />
       <div className="stage-inner" style={parallax}>
         <p className="stage-eyebrow">

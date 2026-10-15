@@ -3,7 +3,9 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 // @ts-expect-error 纯 ESM 模块，没有类型声明
-import { createPiService, MAX_RANGE_OVERLAP } from '../server/pi-service.mjs';
+import { byteOffsetOf, createPiService, MAX_RANGE_OVERLAP } from '../server/pi-service.mjs';
+import { encodingsFor } from '../src/lib/encodings';
+import { byteOffsetOfPosition } from '../src/lib/position';
 
 /** 200 位小数的合成上游：内容确定、长度可控，用来做小规模分块测试 */
 const DECIMALS = Array.from({ length: 200 }, (_, i) => String((i * 7 + 3) % 10)).join('');
@@ -231,5 +233,22 @@ describe('HTTP 中间件', () => {
     cleanups.push(service.cacheDir);
     const { nextCalled } = await dispatch(service, '/index.html');
     expect(nextCalled).toBe(true);
+  });
+});
+
+// 前后端之间有两处「看不见的约定」，写坏了不会立刻报错，只会少扫或多扫几个位置：
+// 1. 浏览器每块要多取 maxNeedleLen-1 位做跨块重叠，服务的上限是 blockSize + MAX_RANGE_OVERLAP；
+// 2. 「小数点后第 k 位」换算成上游字节偏移，两边各有一份实现。
+describe('前后端约定（跨块重叠与字节偏移口径）', () => {
+  it('最长写法的位数不超过服务允许的跨块重叠', () => {
+    const longest = encodingsFor(new Date(2028, 1, 29)).reduce((max, item) => Math.max(max, item.digits.length), 0);
+    expect(longest).toBeGreaterThan(0);
+    expect(MAX_RANGE_OVERLAP).toBeGreaterThanOrEqual(longest - 1);
+  });
+
+  it('前端与服务对「第 k 位 → 字节偏移」的换算一致', () => {
+    for (const position of [1, 2, 762, 9_999, 1_000_000, 1_000_000_000]) {
+      expect(byteOffsetOfPosition(position)).toBe(byteOffsetOf(position));
+    }
   });
 });

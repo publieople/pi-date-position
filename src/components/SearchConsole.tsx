@@ -52,10 +52,17 @@ export function SearchConsole({
           </button>
         </div>
       </div>
-      <div className="bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)}>
+      <div
+        className="bar"
+        role="progressbar"
+        aria-label={'实时扫描进度：前 ' + formatCompact(target) + ' 位'}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(percent)}
+      >
         <div className="bar-fill" style={{ width: percent.toFixed(2) + '%' }} />
       </div>
-      <div className="console-grid">
+      <dl className="console-grid">
         <div>
           <dt>已扫描位数</dt>
           <dd>
@@ -90,7 +97,7 @@ export function SearchConsole({
           <dt>数据源</dt>
           <dd className="dim">{source?.label ?? '探测中…'}</dd>
         </div>
-      </div>
+      </dl>
       <div className="console-deep">
         <label>
           <span>深搜上限</span>
