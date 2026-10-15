@@ -1132,6 +1132,14 @@ input[type='date'] {
   color-scheme: dark;
 }
 
+.picker-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dim);
+  opacity: 0.85;
+}
+
 .picker-actions {
   display: flex;
   gap: 8px;

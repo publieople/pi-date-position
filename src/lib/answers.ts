@@ -16,6 +16,14 @@ export const ANSWERS_VERSION = 1;
 /** 年份文件里六个槽位的顺序，必须与 scripts/answers.mjs 的 SLOT_KEYS / encodingsFor 的主槽位一致。 */
 export const ANSWER_SLOT_IDS = ['yyyymmdd', 'mmdd', 'ddmm', 'yymmdd', 'mmddyyyy', 'ddmmyyyy'] as const;
 
+/** 页面可选日期的范围 = 离线答案表覆盖的范围（与 scripts/answers.mjs 的默认 --from-year / --to-year 一致）。 */
+export const ANSWER_RANGE = {
+  fromYear: 1900,
+  toYear: 2100,
+  minKey: '1900-01-01',
+  maxKey: '2100-12-31',
+} as const;
+
 export interface AnswersManifest {
   version: number;
   generatedAt: string;

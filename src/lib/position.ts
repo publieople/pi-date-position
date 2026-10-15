@@ -70,6 +70,17 @@ export function formatClock(date: Date): string {
   return pad2(date.getHours()) + ':' + pad2(date.getMinutes()) + ':' + pad2(date.getSeconds());
 }
 
+/**
+ * 把日期键夹进 [minKey, maxKey]（YYYY-MM-DD 可直接按字符串比大小）；
+ * 格式不对的键原样返回，交给 parseDateKey 去判非法。
+ */
+export function clampDateKey(key: string, minKey: string, maxKey: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return key;
+  if (key < minKey) return minKey;
+  if (key > maxKey) return maxKey;
+  return key;
+}
+
 export function weekdayName(date: Date): string {
   return '星期' + WEEKDAY_NAMES[date.getDay()];
 }

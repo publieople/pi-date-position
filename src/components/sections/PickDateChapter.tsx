@@ -8,6 +8,8 @@ import { Reveal, Section } from '../Section';
 export interface PickDateChapterProps {
   dateKey: string;
   isToday: boolean;
+  min: string;
+  max: string;
   onChange: (key: string) => void;
   onStep: (days: number) => void;
   onToday: () => void;
@@ -21,6 +23,8 @@ export interface PickDateChapterProps {
 export function PickDateChapter({
   dateKey,
   isToday,
+  min,
+  max,
   onChange,
   onStep,
   onToday,
@@ -41,6 +45,8 @@ export function PickDateChapter({
         <DatePicker
           dateKey={dateKey}
           isToday={isToday}
+          min={min}
+          max={max}
           onChange={onChange}
           onStep={onStep}
           onToday={onToday}

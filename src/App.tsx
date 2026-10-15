@@ -16,8 +16,8 @@ import { PiSearchRun, type ScanSnapshot, type Scanner } from './lib/searchEngine
 import { probeSource, remoteWindowRange, type DigitSource } from './lib/digitSource';
 import { createScanPool, type ScanPool } from './lib/workerScanner';
 import { clearCache, loadCache, saveCache, type CachedResult } from './lib/resultCache';
-import { formatCompact, formatThousands, pad2, parseDateKey, toDateKey, withDateParam } from './lib/position';
-import { lookupAnswers, mergeAnswers, type DateAnswers } from './lib/answers';
+import { clampDateKey, formatCompact, formatThousands, pad2, parseDateKey, toDateKey, withDateParam } from './lib/position';
+import { ANSWER_RANGE, lookupAnswers, mergeAnswers, type DateAnswers } from './lib/answers';
 import { pickDisplayNeedle } from './lib/present';
 import type { DigitsStripProps, StripWriting } from './components/DigitsStrip';
 import type { SelfCheckState } from './components/Conventions';
@@ -65,7 +65,9 @@ export default function App() {
   const todayKey = toDateKey(now);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(readDateParam);
-  const activeKey = selectedKey ?? todayKey;
+  // 可选范围就是离线答案表的覆盖范围：越界（旧链接、手改地址栏）一律夹回边界，
+  // 免得页面在这张表之外悄悄降级成「只扫到前 100 万位」的样子
+  const activeKey = clampDateKey(selectedKey ?? todayKey, ANSWER_RANGE.minKey, ANSWER_RANGE.maxKey);
   const isToday = activeKey === todayKey;
   const date = useMemo(() => parseDateKey(activeKey) ?? new Date(), [activeKey]);
 
@@ -394,14 +396,14 @@ export default function App() {
   const handleStep = useCallback(
     (days: number) => {
       const next = new Date(date.getFullYear(), date.getMonth(), date.getDate() + days, 12, 0, 0, 0);
-      setSelectedKey(toDateKey(next));
+      setSelectedKey(clampDateKey(toDateKey(next), ANSWER_RANGE.minKey, ANSWER_RANGE.maxKey));
     },
     [date],
   );
 
   const handleRandom = useCallback(() => {
-    const start = Date.UTC(1980, 0, 1);
-    const end = Date.UTC(2035, 11, 31);
+    const start = Date.parse(ANSWER_RANGE.minKey + 'T00:00:00Z');
+    const end = Date.parse(ANSWER_RANGE.maxKey + 'T00:00:00Z');
     const random = new Date(start + Math.random() * (end - start));
     setSelectedKey(random.getUTCFullYear() + '-' + pad2(random.getUTCMonth() + 1) + '-' + pad2(random.getUTCDate()));
   }, []);
@@ -465,6 +467,8 @@ export default function App() {
         <PickDateChapter
           dateKey={activeKey}
           isToday={isToday}
+          min={ANSWER_RANGE.minKey}
+          max={ANSWER_RANGE.maxKey}
           onChange={(key) => {
             if (parseDateKey(key)) setSelectedKey(key);
           }}

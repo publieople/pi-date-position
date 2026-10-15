@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { CoverageTracker, findOccurrencesInText } from '../src/lib/searchCore';
 import { CHUNK_LADDER, chunkSizeAt, planChunk } from '../src/lib/searchEngine';
 import { encodingsFor, searchNeedles } from '../src/lib/encodings';
-import { byteOffsetOfPosition, formatThousands, parseDateKey, toDateKey, withDateParam } from '../src/lib/position';
+import { byteOffsetOfPosition, clampDateKey, formatThousands, parseDateKey, toDateKey, withDateParam } from '../src/lib/position';
+import { ANSWER_RANGE } from '../src/lib/answers';
 import { tableNote } from '../src/lib/headline';
 import { createRemoteWindow, remoteWindowRange, REMOTE_MAX_PER_REQUEST } from '../src/lib/digitSource';
 
@@ -46,6 +47,39 @@ describe('日期解析', () => {
     expect(parseDateKey('2026-13-01')).toBeNull();
     expect(parseDateKey('2026-1-4')).toBeNull();
     expect(parseDateKey('')).toBeNull();
+  });
+});
+
+describe('可选日期范围（离线答案表覆盖 1900–2100）', () => {
+  const { minKey, maxKey } = ANSWER_RANGE;
+
+  it('范围内的日期原样返回', () => {
+    expect(clampDateKey('2026-10-15', minKey, maxKey)).toBe('2026-10-15');
+    expect(clampDateKey(minKey, minKey, maxKey)).toBe(minKey);
+    expect(clampDateKey(maxKey, minKey, maxKey)).toBe(maxKey);
+  });
+
+  it('越界的夹回边界', () => {
+    expect(clampDateKey('1899-12-31', minKey, maxKey)).toBe(minKey);
+    expect(clampDateKey('1800-01-01', minKey, maxKey)).toBe(minKey);
+    expect(clampDateKey('2101-01-01', minKey, maxKey)).toBe(maxKey);
+  });
+
+  it('格式不对的键原样返回，交给 parseDateKey 判非法', () => {
+    expect(clampDateKey('abc', minKey, maxKey)).toBe('abc');
+    expect(clampDateKey('', minKey, maxKey)).toBe('');
+    expect(clampDateKey('2026-1-5', minKey, maxKey)).toBe('2026-1-5');
+  });
+
+  it('边界的年份与表覆盖的年份一致', () => {
+    const min = parseDateKey(minKey);
+    const max = parseDateKey(maxKey);
+    expect(min?.getFullYear()).toBe(ANSWER_RANGE.fromYear);
+    expect(max?.getFullYear()).toBe(ANSWER_RANGE.toYear);
+    expect(min?.getMonth()).toBe(0);
+    expect(min?.getDate()).toBe(1);
+    expect(max?.getMonth()).toBe(11);
+    expect(max?.getDate()).toBe(31);
   });
 });
 
