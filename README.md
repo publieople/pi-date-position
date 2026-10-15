@@ -50,7 +50,7 @@ pnpm dev        # http://127.0.0.1:5273
 1. **本机服务（首选）**：`/api/meta` + `/api/digits`，由 `server/pi-service.mjs` 提供，dev / preview / `pnpm serve` 三者共用同一份中间件。
    - 上游：<https://stuff.mit.edu/afs/sipb/contrib/pi/pi-billion.txt>（10 亿位小数，ASCII 无换行，支持 Range 请求）。
    - 按 4,000,000 字节一块切成 251 块，先写临时文件再 `rename`，所以缓存文件永远是完整的；同一块的并发请求只下载一次。
-2. **静态降级**：`public/pi-1m.txt`（`pnpm fetch-fallback` 生成，前 100 万位）。没有本机服务时（例如 GitHub Pages 上的在线演示版）页面读这份同源文件并提示「只有前 100 万位」，8 位写法在此范围内找不到时不能下结论。
+2. **静态降级**：`public/pi-1m.txt`（`pnpm fetch-fallback` 生成，前 100 万位）。没有本机服务时（例如 GitHub Pages 上的在线演示版）页面读这份同源文件；「只有前 100 万位」这件事写在 `#engine` 与 `#trust` 两章里（首屏不再插提示条），8 位写法在此范围内找不到时不能下结论。
 3. 浏览器**不能**直连 MIT：该服务器没有返回 `Access-Control-Allow-Origin`，跨域会被挡，所以必须经本机服务。
 
 ## HTTP 接口
@@ -112,7 +112,7 @@ pnpm dlx playwright screenshot --channel=chrome --color-scheme=dark --viewport-s
 # 章节： #forms / #digits / #engine / #pick / #trust 各来一张
 ```
 
-手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态降级提示、762 位自检徽章；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
+手工核对：首屏计数从 0 走到位次、卡片 90ms 依次浮入、数字带命中片段逐位点亮、`#engine` 方块循环点亮、导航轨高亮与点击跳转、滚轮翻章（在章节边界滚一格翻一整段，`#forms` 这种比一屏高的段先原生滚到底）、`?date=2028-02-29`（首屏给 `DDMM 2902` → 第 713 位；`YYMMDD 280229` → 第 451,478 位）、日期切换后首屏跟随、停止 / 重新搜索 / 清空本机记录、静态数据源下 `#engine` / `#trust` 的文案分支、762 位自检徽章；再把浏览器调成 620px 宽确认单列与导航轨隐藏，并在 DevTools 里模拟 `prefers-reduced-motion: reduce` 确认所有动画一次性归零。
 
 ## 界面实拍
 

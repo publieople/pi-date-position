@@ -16,7 +16,7 @@ import { PiSearchRun, type ScanSnapshot, type Scanner } from './lib/searchEngine
 import { probeSource, type DigitSource } from './lib/digitSource';
 import { createScanPool, type ScanPool } from './lib/workerScanner';
 import { clearCache, loadCache, saveCache, type CachedResult } from './lib/resultCache';
-import { formatCompact, pad2, parseDateKey, toDateKey } from './lib/position';
+import { pad2, parseDateKey, toDateKey } from './lib/position';
 import type { DigitsStripProps, StripWriting } from './components/DigitsStrip';
 import type { SelfCheckState } from './components/Conventions';
 
@@ -324,14 +324,6 @@ export default function App() {
       />
 
       <main className="flow">
-        {source?.kind === 'static' ? (
-          <p className="notice">
-            在线演示版只有站点自带的前 {formatCompact(source.maxDigits)} 位静态数据，所以 8 位写法若在前{' '}
-            {formatCompact(source.maxDigits)} 位内没有出现就无法给出结论。想看小数点后 10 亿位：把仓库 clone 到本机，
-            执行 <code>pnpm install</code> 后运行 <code>pnpm dev</code>，本机服务会按 4,000,000 字节一块去取 MIT 的 π 文件。
-          </p>
-        ) : null}
-
         {source?.kind === 'unavailable' ? (
           <p className="notice notice-bad">
             没有可用的 π 数据源：本机服务未启动，且站点自带的 <code>public/pi-1m.txt</code> 读取失败（可执行{' '}
