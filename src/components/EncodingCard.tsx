@@ -90,7 +90,7 @@ export function EncodingCard({
             </div>
             <div>
               <dt>结论范围</dt>
-              <dd>前 {depthLabel} 位</dd>
+              <dd>前 {depthLabel}位</dd>
             </div>
           </>
         ) : (
@@ -108,7 +108,19 @@ export function EncodingCard({
       </dl>
       {cached ? (
         <div className="card-cache">
-          上次记录：第 {formatThousands(cached.position)} 位（已验证到 {formatThousands(cached.scannedThrough)} 位）
+          {fromTable
+            ? '上次实时扫描记到：第 ' +
+              formatThousands(cached.position) +
+              ' 位（当时扫到 ' +
+              formatThousands(cached.scannedThrough) +
+              ' 位' +
+              (cached.position === found ? '，与预计算表一致' : '，与预计算表不一致（以预计算表为准）') +
+              '）'
+            : '上次记录：第 ' +
+              formatThousands(cached.position) +
+              ' 位（已验证到 ' +
+              formatThousands(cached.scannedThrough) +
+              ' 位）'}
         </div>
       ) : null}
       {onToggle ? (
