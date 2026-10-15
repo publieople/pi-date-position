@@ -94,7 +94,8 @@ pnpm answers -- --depth 2000000000   # 想更深也可以（文件体积随之�
 
 - `src/lib/motion.ts`：`clamp01` / `easeOutCubic` / `stagger` / `revealDelay` / `countUpValue` / `scrollThroughProgress` 等纯函数（有单测）。
 - `src/lib/present.ts`：首屏展示哪一条写法的选择逻辑（`pickDisplayNeedle`）—— 主写法确认了就用它，否则取「已确认写法里位次最靠前的」，最后才退到暂定位次；纯函数、有单测（以前埋在 `App.tsx` 里没有测试）。
-- `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮 + 键盘翻章）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` / `accumulateWheel` / `pagingIntentForKey` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮与页面键、维持 700ms 锁定窗口。地址栏与日期同步用 `src/lib/position.ts` 的 `withDateParam`（纯函数、有单测）。
+- `src/hooks/`：`useInView`（IntersectionObserver，once + cleanup，StrictMode 安全）、`useScrollProgress`（rAF 节流的 passive 滚动监听，只读 `getBoundingClientRect`）、`useCountUp`、`usePrefersReducedMotion`、`useActiveSection`、`useSectionPaging`（滚轮 + 键盘翻章）、`useDateSelection`（日期状态 + `?date=` 深链 + 地址栏同步 + 夹回 1900–2100）、`useInitialHash`（挂载时滚到 `#hash` 章节）、`usePiSource` / `useScanPool`（探测数据源、建 Worker 池）、`useAnswersForDate`（这一天的表：`table` / `waiting` / `missing`）、`useSearchSession`（启动扫描 + 本地缓存）、`useDigitsStrip`（数字带，远位走 api.pi.delivery）、`useSelfCheck`（第 762 位起 6 位）。翻页判定在 `src/lib/paging.ts` 的 `pageTarget` / `sectionIndexAt` / `accumulateWheel` / `pagingIntentForKey` 里，是纯函数、有单测；hook 只负责度量章节、拦滚轮与页面键、维持 700ms 锁定窗口。地址栏与日期同步用 `src/lib/position.ts` 的 `withDateParam`（纯函数、有单测）。
+- `src/App.tsx`：自身只做**组合** —— 日期、数据源、答案表、扫描会话、数字带、自检各一个 hook，页面视图由 `src/lib/answers.ts` 的纯函数 `composeView`（有单测）把「实时扫描快照 + 这一天的答案表」合成，降级提示抽在 `src/components/DataSourceNotice.tsx`。
 - CSS：JS 挂载后给 `<html>` 加 `.js-motion`，之后 `.reveal` 才有 `opacity: 0` / `translateY(20px)` 初值，进入视口加 `.is-in` 过渡到终态（0.7s）。**没有 JS 时内容默认可见**。只动 `transform` / `opacity` / `scale`。
 
 ## 脚本

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ANSWER_SLOT_IDS,
   ANSWERS_VERSION,
+  composeView,
   dayIndexOf,
   daysInYear,
   findDateAnswers,
@@ -16,7 +17,7 @@ import {
   type YearAnswers,
 } from '../src/lib/answers';
 import { encodingsFor } from '../src/lib/encodings';
-import type { NeedleState } from '../src/lib/searchEngine';
+import type { NeedleState, ScanSnapshot } from '../src/lib/searchEngine';
 
 afterEach(() => {
   resetAnswersCache();
@@ -354,3 +355,80 @@ describe('答案表：产物对齐（表未重新生成时跳过）', () => {
     }
   });
 });
+
+describe('答案表：合成页面视图（composeView）', () => {
+  const stateOf = (digits: string, over: Partial<NeedleState> = {}): NeedleState => ({
+    id: digits,
+    digits,
+    length: digits.length,
+    firstHit: null,
+    firstHitConfirmed: false,
+    occurrences: 0,
+    occurrencesConfirmed: 0,
+    status: 'searching',
+    ...over,
+  });
+
+  const tableOf = (slots: Array<[string, string, number | null, number]>, depth = 1_000_000_000) => ({
+    year: 2026,
+    month: 10,
+    day: 14,
+    depth,
+    slots: slots.map(([id, digits, position, count]) => ({ id, label: id, digits, position, count })),
+  });
+
+  const scanOf = (over: Partial<ScanSnapshot> = {}): ScanSnapshot => ({
+    phase: 'searching',
+    scannedDigits: 64_000,
+    checkedDigits: 63_992,
+    targetDigits: 10_000_000,
+    availableDigits: 1_000_000_000,
+    bytesFetched: 64_000,
+    chunksDone: 1,
+    elapsedMs: 120,
+    etaMs: 30_000,
+    gaps: [[10, 20]],
+    needles: [],
+    ...over,
+  });
+
+  it('没有表时原样返回扫描快照（同一个对象）', () => {
+    const snapshot = scanOf();
+    expect(composeView(snapshot, null, 10_000_000)).toBe(snapshot);
+    expect(composeView(null, null, 10_000_000)).toBeNull();
+  });
+
+  it('扫描还没出第一帧时用空快照垫底，深度取表与目标的较大者', () => {
+    const view = composeView(null, tableOf([['mmdd', '1014', 2_780, 9]], 1_000_000), 10_000_000)!;
+    expect(view.phase).toBe('searching');
+    expect(view.scannedDigits).toBe(0);
+    expect(view.targetDigits).toBe(10_000_000);
+    expect(view.availableDigits).toBe(10_000_000);
+    expect(view.gaps).toEqual([]);
+    expect(view.needles).toHaveLength(1);
+    expect(view.needles[0].firstHit).toBe(2_780);
+    expect(view.needles[0].origin).toBe('table');
+  });
+
+  it('进度类字段完全来自实时扫描，只有 needle 结论换成表', () => {
+    const snapshot = scanOf({
+      phase: 'done',
+      needles: [stateOf('20261014', { firstHit: 999, firstHitConfirmed: true, occurrences: 1, status: 'found' })],
+    });
+    const view = composeView(snapshot, tableOf([['yyyymmdd', '20261014', 13_634_723, 2]]), 10_000_000)!;
+    expect(view.phase).toBe('done');
+    expect(view.scannedDigits).toBe(64_000);
+    expect(view.checkedDigits).toBe(63_992);
+    expect(view.targetDigits).toBe(10_000_000);
+    expect(view.gaps).toEqual([[10, 20]]);
+    expect(view.elapsedMs).toBe(120);
+    const needle = view.needles[0];
+    expect(needle.firstHit).toBe(13_634_723);
+    expect(needle.occurrences).toBe(2);
+    expect(needle.origin).toBe('table');
+    expect(needle.knownThrough).toBe(1_000_000_000);
+    // 原快照不被改写
+    expect(snapshot.needles[0].firstHit).toBe(999);
+  });
+});
+

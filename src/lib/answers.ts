@@ -8,7 +8,7 @@
 // 口径与页面一致：位次是「小数点后第 k 位」（1-based），次数是完整落在前 depth 位内的
 // 出现次数（允许重叠）；两者都只在这个深度内成立，超出深度不做任何断言。
 import { encodingsFor, type Encoding } from './encodings';
-import type { NeedleState } from './searchEngine';
+import type { NeedleState, ScanSnapshot } from './searchEngine';
 
 /** 答案表版本；表格式改了就加一，旧表会被 parseManifest 拒掉。 */
 export const ANSWERS_VERSION = 1;
@@ -360,4 +360,32 @@ export function mergeAnswers(needles: readonly NeedleState[], answers: DateAnswe
     merged.push(stateFromSlot(slot, answers.depth));
   }
   return merged;
+}
+
+/**
+ * 合成页面用的视图快照：needle 结论以离线答案表为准，进度类字段保持实时扫描的语义。
+ *
+ * 表为空（还没取到、这一轮取表失败）时原样返回扫描快照；扫描还没出第一帧时用一份
+ * 「正在搜索」的空快照垫底，好让表答案先单独撑住首屏。
+ */
+export function composeView(
+  snapshot: ScanSnapshot | null,
+  table: DateAnswers | null,
+  targetDigits: number,
+): ScanSnapshot | null {
+  if (!table) return snapshot;
+  const base: ScanSnapshot = snapshot ?? {
+    phase: 'searching',
+    scannedDigits: 0,
+    checkedDigits: 0,
+    targetDigits,
+    availableDigits: Math.max(table.depth, targetDigits),
+    bytesFetched: 0,
+    chunksDone: 0,
+    elapsedMs: 0,
+    etaMs: null,
+    gaps: [],
+    needles: [],
+  };
+  return { ...base, needles: mergeAnswers(base.needles, table) };
 }
