@@ -1,9 +1,12 @@
 import { DigitsStrip, type DigitsStripProps, type StripWriting } from '../DigitsStrip';
+import { DepthRuler } from '../DepthRuler';
 import { Reveal, Section } from '../Section';
 
 export type DigitsChapterProps = Omit<DigitsStripProps, 'animate'> & {
   /** 当前数字带展示的是哪一种写法；null = 还没有任何确认的位次 */
   writing: StripWriting | null;
+  /** 深度尺的最大深度（离线答案表深度或本轮扫描水位）；null = 不画尺 */
+  depth: number | null;
 };
 
 /** 背景数字流用的一段 π（小数点后 250 位，标准值）。 */
@@ -23,6 +26,7 @@ export function DigitsChapter({
   message,
   note,
   writing,
+  depth,
 }: DigitsChapterProps) {
   return (
     <Section
@@ -59,6 +63,17 @@ export function DigitsChapter({
           note={note}
           animate
         />
+        {position !== null && depth !== null && depth > 1 ? (
+          <Reveal index={1} className="ruler-slot">
+            <DepthRuler
+              position={position}
+              depth={depth}
+              label={writing ? writing.label : needle}
+              digits={writing ? writing.digits : needle}
+              tentative={writing ? writing.tentative : undefined}
+            />
+          </Reveal>
+        ) : null}
       </Reveal>
     </Section>
   );

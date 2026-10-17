@@ -14,8 +14,8 @@
   --warn: #f4b860;
   --bad: #ff7a7a;
   --ok: #58d68d;
-  --mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, 'Courier New', monospace;
-  --sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  --mono: 'Cascadia Mono', 'JetBrains Mono', 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --sans: 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
   --radius: 18px;
   --radius-sm: 12px;
   --gap-chapter: clamp(72px, 11vh, 148px);
@@ -293,6 +293,14 @@ button:disabled {
   transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
+/* 视觉上仍是 10px 的点，实际可点区域扩到 34px：手机上和触控板前不用瞄那么准 */
+.rail-dot::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+}
+
 .rail-dot:hover {
   text-decoration: none;
   border-color: var(--accent);
@@ -409,6 +417,7 @@ button:disabled {
   line-height: 0.98;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
+  text-align: center;
   background: linear-gradient(180deg, #ffffff 0%, #b9dcff 52%, #5aa9ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -442,6 +451,35 @@ button:disabled {
   color: var(--dim);
 }
 
+/* 等离线答案表时用骨架条占住巨型数字的位置，表一到就换成数字，不把整屏往上顶 */
+.stage-number-skeleton {
+  display: inline-block;
+  font-size: var(--fs-hero);
+  line-height: 0.98;
+  color: transparent;
+  /* 按 9 个字符宽预留（位次常见是 9 位数字 + 两个逗号），表到时不把整行左右推一下 */
+  width: min(78vw, 9ch);
+  height: 0.98em;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(90, 169, 255, 0.08) 0%,
+    rgba(90, 169, 255, 0.26) 50%,
+    rgba(90, 169, 255, 0.08) 100%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -20% 0;
+  }
+}
+
 .stage-caption {
   margin: 4px 0 0;
   font-size: clamp(16px, 1.8vw, 24px);
@@ -450,8 +488,10 @@ button:disabled {
 
 .stage-note {
   margin: 0;
+  min-height: 1.6em;
   max-width: 620px;
   font-size: 13px;
+  line-height: 1.6;
   color: var(--dim);
 }
 
@@ -918,6 +958,141 @@ button:disabled {
   opacity: 0.85;
 }
 
+/* ---------- 位次深度尺 ---------- */
+
+.ruler-slot {
+  margin-top: 26px;
+}
+
+.ruler {
+  padding: 18px 22px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel) 0%, var(--bg-soft) 100%);
+}
+
+.ruler-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ruler-title {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.ruler-sub {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.ruler-track {
+  position: relative;
+  height: 92px;
+  margin-top: 18px;
+}
+
+.ruler-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 56px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(90, 169, 255, 0.15) 0%,
+    rgba(90, 169, 255, 0.55) 55%,
+    rgba(124, 240, 208, 0.75) 100%
+  );
+}
+
+.ruler-tick {
+  position: absolute;
+  top: 56px;
+  width: 1px;
+  height: 7px;
+  background: #3a5478;
+  transform: translateX(-0.5px);
+}
+
+.ruler-tick-label {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #6f82a0;
+  white-space: nowrap;
+}
+
+/* 两端刻度贴边对齐，别探出卡片 */
+.ruler-tick.is-first .ruler-tick-label {
+  transform: none;
+}
+
+.ruler-tick.is-last .ruler-tick-label {
+  transform: translateX(-100%);
+}
+
+.ruler-marker {
+  position: absolute;
+  top: 56px;
+  width: 0;
+}
+
+.ruler-marker::before {
+  content: '';
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 4px rgba(124, 240, 208, 0.16), 0 0 14px rgba(124, 240, 208, 0.45);
+}
+
+.ruler-marker-label {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  transform: translateX(-50%);
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 240, 208, 0.4);
+  background: rgba(124, 240, 208, 0.08);
+  color: var(--accent-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ruler-marker.is-left .ruler-marker-label {
+  transform: none;
+}
+
+.ruler-marker.is-right .ruler-marker-label {
+  transform: translateX(-100%);
+}
+
+.ruler-foot {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--dim);
+}
+
+.ruler-foot code {
+  color: var(--accent-2);
+  background: rgba(124, 240, 208, 0.08);
+  border-color: rgba(124, 240, 208, 0.24);
+}
+
 .strip-msg {
   margin: 0;
   font-size: 14px;
@@ -1283,6 +1458,30 @@ input[type='date'] {
   .strip {
     padding: 16px;
   }
+  .stage-note {
+    min-height: 3.2em;
+  }
+  /* 手机上先给出可点的按钮，把说明文字挪到按钮下面 */
+  .picker-hint {
+    order: 3;
+    flex-basis: 100%;
+    margin-top: 4px;
+  }
+  .picker-actions {
+    order: 2;
+  }
+  .ruler {
+    padding: 16px;
+  }
+  .ruler-sub {
+    display: none;
+  }
+  .ruler-track {
+    height: 84px;
+  }
+  .ruler-tick-label {
+    font-size: 10px;
+  }
 }
 
 /* ---------- 减少动态效果 ---------- */
@@ -1306,6 +1505,7 @@ input[type='date'] {
   .js-motion .stage-note,
   .js-motion .stage-cta,
   .js-motion .stage-scroll,
+  .js-motion .stage-number-skeleton,
   .stage-arrow,
   .js-motion .engine-facts.is-in .block,
   .status-busy .dot,

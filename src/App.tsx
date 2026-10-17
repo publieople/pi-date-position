@@ -105,6 +105,8 @@ export default function App() {
   const heroAnswer = table.waiting ? null : displayNeedle;
   const displayDigits = displayNeedle ? displayNeedle.digits : null;
   const displayPosition = displayNeedle ? displayNeedle.position : null;
+  // 深度尺的深度：表答案用表深度；实时扫描答案用它确认到的水位；再退到本轮扫描目标
+  const displayDepth = displayNeedle?.knownThrough ?? table.table?.depth ?? (scanReach > 1 ? scanReach : null);
 
   const strip = useDigitsStrip({
     source,
@@ -133,6 +135,7 @@ export default function App() {
         snapshot={view}
         source={source}
         scanReach={scanReach}
+        tablePending={table.waiting}
         answer={heroAnswer}
       />
 
@@ -147,7 +150,7 @@ export default function App() {
           onToggleExtras={() => setShowExtras((value) => !value)}
         />
 
-        <DigitsChapter {...strip} needle={displayDigits ?? primaryDigits} />
+        <DigitsChapter {...strip} needle={displayDigits ?? primaryDigits} depth={displayDepth} />
 
         <EngineChapter
           snapshot={snapshot}
