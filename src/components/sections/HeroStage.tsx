@@ -134,15 +134,17 @@ export function HeroStage({
           {suffix ? <span className="stage-number-suffix">{suffix}</span> : null}
         </div>
         <p className="sr-only" aria-live="polite">
-          {value === null
-            ? ''
-            : kind === 'position'
-              ? (answer ? answer.label + ' ' + answer.digits + ' 首次出现在 π 的小数点后第 ' : '位次在 π 的小数点后第 ') +
-                formatThousands(value) +
-                ' 位'
-              : kind === 'scanned'
-                ? '还没锁定位次，已扫描到第 ' + formatThousands(value) + ' 位'
-                : ''}
+          {pending
+            ? '正在读取离线答案表，读完后会播报这一天的位次'
+            : value === null
+              ? ''
+              : kind === 'position'
+                ? (answer ? answer.label + ' ' + answer.digits + ' 首次出现在 π 的小数点后第 ' : '位次在 π 的小数点后第 ') +
+                  formatThousands(value) +
+                  ' 位'
+                : kind === 'scanned'
+                  ? '还没锁定位次，已扫描到第 ' + formatThousands(value) + ' 位'
+                  : ''}
         </p>
         <p className="stage-caption">{caption}</p>
         {/* 备注槽位始终存在（空字符串也占一行）：表回来时它从「加载中」换成结论，不会推挤下面内容 */}
