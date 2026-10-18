@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4f0e6" />
+    <meta
+      name="description"
+      content="π 日签：把今天写成六种数字，看它第一次出现在圆周率 π 的小数点后第几位。覆盖 1900–2100 的每一天，离线答案表直达前 10 亿位。"
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="canonical" href="https://publieople.github.io/pi-date-position/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="π 日签" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:url" content="https://publieople.github.io/pi-date-position/" />
+    <meta property="og:title" content="π 日签 · 今天在圆周率的第几位" />
+    <meta
+      property="og:description"
+      content="同一个日子有六种数字写法，它们各自第一次出现在 π 的哪一位？答案来自前 10 亿位的离线答案表。"
+    />
+    <meta property="og:image" content="https://publieople.github.io/pi-date-position/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="π 日签：纸本风格的页面，中央是一个日期在圆周率中的位次。" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="π 日签 · 今天在圆周率的第几位" />
+    <meta
+      name="twitter:description"
+      content="同一个日子有六种数字写法，它们各自第一次出现在 π 的哪一位？答案来自前 10 亿位的离线答案表。"
+    />
+    <meta name="twitter:image" content="https://publieople.github.io/pi-date-position/og-cover.png" />
+    <title>π 日签 · 今天在圆周率的第几位</title>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        root.classList.add('js');
+        var theme = null;
+        try {
+          theme = window.localStorage.getItem('pi-theme');
+        } catch (error) {
+          theme = null;
+        }
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+          meta.setAttribute('content', theme === 'dark' ? '#0f1115' : '#f4f0e6');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="margin: 24px; font: 16px/1.7 system-ui, sans-serif">
+        这个页面需要 JavaScript：它要读取随站点发布的离线答案表（1900–2100 每一天的位次）和 π 的数字副本。请开启 JavaScript 后刷新。
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
